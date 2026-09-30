@@ -4,7 +4,7 @@ Static single-page web app for GitHub Pages. Google Sheets is the database. No A
 
 ## Current build status
 
-The first GitHub build provides the CRM UI shell, Google OAuth connection, batched Google Sheets reads, dashboard summaries, team target and per-sale assignment views, sales import preview, action views, and master-data listing/import/export scaffolding. It is an implementation foundation and must pass setup and end-to-end verification before team rollout.
+The current build provides the CRM UI shell, Google OAuth connection, Google Sheets reads/writes, dashboard and team-target coverage, Actual Sales import/export, Action table/Kanban/calendar with basic add/edit/soft-delete and history, and master-data views with import/export and basic add/edit/deactivate. It remains an initial build: weekly customer-base plans, multi-row Action batch entry, complete multi-select/time filters, and role-enforced manager permissions still require implementation and end-to-end testing before team rollout.
 
 ## Setup
 
@@ -20,7 +20,7 @@ The first GitHub build provides the CRM UI shell, Google OAuth connection, batch
 - This repository is public; source code and all commit history are publicly visible. Do not commit customer data, OAuth client secrets, access tokens, or private keys.
 - Sheet data remains private only when Google Drive sharing is restricted. Each user authorizes Google Sheets API directly and must have edit permission on the workbook.
 - Direct browser-to-Sheets access has no server-side role enforcement. UI-level manager fields are not an authorization boundary. For production permissions/audit-grade security, a trusted backend is required.
-- The spreadsheet ID points to the CRM DOMESTIC sheet previously supplied by the owner. This code does not modify the Sheet's structure until a user takes an in-app write action.
+- The CRM DOMESTIC sheet already contained the required tabs and headers. To support the requested next-step due date, one header `Next_Action_Date` was added at the end of `T_SALES_ACTION` (column AI); existing rows and other sheet data were preserved.
 
 ## Sheet tabs expected
 
