@@ -4,7 +4,9 @@ Static single-page web app for GitHub Pages. Google Sheets is the database. No A
 
 ## Current build status
 
-The current build provides the CRM UI shell, Google OAuth connection, Google Sheets reads/writes, dashboard and team-target coverage, Actual Sales import/export, Action table/Kanban/calendar with basic add/edit/soft-delete and history, and master-data views with import/export and basic add/edit/deactivate. It remains an initial build: weekly customer-base plans, multi-row Action batch entry, complete multi-select/time filters, and role-enforced manager permissions still require implementation and end-to-end testing before team rollout.
+The current build provides Google OAuth and Sheets access, a dashboard, two-step team and Sale targets, Actual Sales import/export, master-data CRUD/import/export, and Sales Action table/Kanban/calendar views. Sales Action supports weekly Contact/Spot plans for existing customers (including copying the prior week's plan) and multi-row follow-up batches for existing customers or Prospects. Plan quantities convert through Item Master UOM factors; plan records retain Product Type/PART/SUB-PART and Actual Sales roll up from Item to category.
+
+The repository includes `tests/smoke-test.js` for the two planning flows, category matching, UOM conversions, target allocation matching, and item-to-category reporting. These are source-level tests; verify Google OAuth, Sheet permissions, and live imports with a non-production copy of the workbook before rollout. Direct browser-to-Sheets access has no server-side role enforcement.
 
 ## Setup
 
@@ -24,6 +26,6 @@ The current build provides the CRM UI shell, Google OAuth connection, Google She
 
 ## Sheet tabs expected
 
-`M_CHANNEL`, `M_ITEM`, `M_ITEM_UOM`, `M_CUSTOMER`, `M_CUSTOMER_PRODUCT`, `M_PROSPECT`, `M_SALE`, `T_TEAM_TARGET`, `T_MONTHLY_TARGET`, `T_WEEKLY_CUSTOMER_PLAN`, `T_SALES_ACTION`, `T_SALES_ACTION_HISTORY`, `T_SALES_ACTUAL`, `T_IMPORT_LOG`.
+`M_CHANNEL`, `M_PRODUCT_GROUP`, `M_ITEM`, `M_ITEM_UOM`, `M_CUSTOMER`, `M_CUSTOMER_PRODUCT`, `M_PROSPECT`, `M_SALE`, `T_TEAM_TARGET`, `T_MONTHLY_TARGET`, `T_WEEKLY_CUSTOMER_PLAN`, `T_SALES_ACTION`, `T_SALES_ACTION_HISTORY`, `T_SALES_ACTUAL`, `T_IMPORT_LOG`.
 
 The app expects headers consistent with the workbook snapshot `01-CRM-DOMESTIC.xlsx`.
