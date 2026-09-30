@@ -9,6 +9,8 @@ const app = fs.readFileSync(path.join(root, 'app-v2.js'), 'utf8');
 assert.match(html, /<script src="app-v2\.js"><\/script>/, 'V2 UI script is loaded by GitHub Pages');
 assert.match(html, /M_PRODUCT_GROUP:'G'/, 'Google Sheets loader requests the product group master');
 assert.match(app, /data-at="table"[\s\S]*data-at="kanban"[\s\S]*data-at="calendar"/, 'Action tabs are present');
+assert.match(app, /id="baSale"[\s\S]*id="baChannel"[\s\S]*id="baType"[\s\S]*id="baPart"[\s\S]*id="baSub"[\s\S]*id="addActionPlan"[\s\S]*id="saveActionBatch"/, 'No-base Action has one shared header and add/save-all controls');
+assert.match(app, /data-a-customer-box[\s\S]*data-a-prospect-box[\s\S]*onchange=e=>\{const p=e\.target\.value==='PROSPECT'/, 'Old customer and Prospect inputs switch mutually exclusively');
 assert.match(app, /HEAD\[TAB\.targets\]=\[\.\.\.HEAD\[TAB\.targets\],'Product_Type','PART','SUB_PART'\]/, 'Monthly Sale target stores category grain');
 
 const ctx = {
@@ -41,7 +43,7 @@ ctx.db = {
   targets: [{Target_ID:'A1',Year:2026,Month:10,Channel:'Market',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Sale_ID:'S1',Target_MT:10,Data_Status:'LIVE'}]
 };
 let source = app.replace(/(?:\n?drawNav\(\);go\('dashboard'\);\s*)+$/, '');
-source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,contactAcceptancePct};';
+source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,contactAcceptancePct,actionRowV2,actionCard,calendarMonth};';
 vm.runInNewContext(source, ctx, {filename:'app-v2.js'});
 const api = ctx.crmTestApi;
 assert.equal(api.selfCheck.bad.length, 0, 'built-in date/UOM checks pass');
@@ -91,4 +93,8 @@ assert.throws(() => api.buildFollowupRecords(ctx.db.sales[0], 'Special', 'Wrong 
   {Due_Date:'2026-09-30',Action_Type:'โทรติดตาม',Customer_Type:'OLD',Customer_Code:'C1',Item_Code:'I1',Plan_Qty:1,Plan_UOM:'MT',KG_Per_UOM:1000}
 ]), /สินค้าในรายการไม่ตรง/);
 assert.match(api.weeklyCalendar([weekly]), /data-week-del="WPLAN-TEST"/, 'weekly Plan can be deleted from calendar');
+const action={Action_ID:'ACT-1',Due_Date:'2026-09-30',Next_Action_Date:'2026-10-02',Next_Action:'Send quotation',Manager_Comment:'Follow up with price',Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Action_Type:'โทรติดตาม',Status:'OPEN',Plan_MT:2,Closed_Sales_MT:0,Product_Type:'Special',PART:'Leg',SUB_PART:'DMS'};
+assert.match(api.actionRowV2(action), /Send quotation[\s\S]*2026-10-02[\s\S]*Follow up with price/, 'Action details include next step, due date, and manager comment');
+assert.match(api.actionCard(action), /2026-10-02/, 'Kanban shows the latest Next Action date');
+assert.match(api.calendarMonth([action]), /2026-10-02/, 'Calendar places Action on the latest Next Action date');
 console.log('CRM smoke tests passed: script link, tabs, target dimensions, category matching, daily Contact/Spot plans for multiple customers, Contact acceptance %, no-base/Prospect plan saves, UOM conversion, and item-to-category reporting.');
