@@ -37,11 +37,11 @@ ctx.db = {
   productGroups: [{Product_Group_ID:'G1',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Base_UOM:'MT',Active:'Y'}],
   items: [{Item_Code:'I1',Item_Name:'Demo Item',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',KG_Per_UOM:1000}],
   sales: [{Sale_ID:'S1',Sale_Name:'Sale One',Channel:'Market'}],
-  customers: [{Customer_Code:'C1',Customer_Name:'Customer One'}], actuals: [], actions: [], weeklyPlans: [],
+  customers: [{Customer_Code:'C1',Customer_Name:'Customer One'},{Customer_Code:'C2',Customer_Name:'Customer Two'}], actuals: [], actions: [], weeklyPlans: [],
   targets: [{Target_ID:'A1',Year:2026,Month:10,Channel:'Market',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Sale_ID:'S1',Target_MT:10,Data_Status:'LIVE'}]
 };
 let source = app.replace(/(?:\n?drawNav\(\);go\('dashboard'\);\s*)+$/, '');
-source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar};';
+source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,contactAcceptancePct};';
 vm.runInNewContext(source, ctx, {filename:'app-v2.js'});
 const api = ctx.crmTestApi;
 assert.equal(api.selfCheck.bad.length, 0, 'built-in date/UOM checks pass');
@@ -67,6 +67,14 @@ assert.equal(weekly.Plan_KG,1000);
 assert.equal(weekly.Plan_MT,1);
 assert.equal(weekly.Plan_Type,'Contact');
 assert.equal(weekly.Contact_Completed,1);
+assert.equal(api.contactAcceptancePct(weekly),50,'accepted Contact quantity is compared in the same Plan UOM');
+const weeklySet=[
+  api.buildWeeklyRecord('W40/2026',ctx.db.sales[0],{Plan_Date:'2026-09-28',Customer_Code:'C1',Item_Code:'I1',Plan_Qty:2,Plan_UOM:'BOX',KG_Per_UOM:500,Plan_Type:'Contact',Contact_Completed:1}),
+  api.buildWeeklyRecord('W40/2026',ctx.db.sales[0],{Plan_Date:'2026-09-29',Customer_Code:'C2',Item_Code:'I1',Plan_Qty:3,Plan_UOM:'BOX',KG_Per_UOM:500,Plan_Type:'Spot'})
+];
+assert.equal(weeklySet.length,2,'one Sale can plan the same item for multiple customers');
+assert.deepEqual(weeklySet.map(x=>x.Plan_Type),['Contact','Spot'],'Contact and Spot are stored separately by scheduled date');
+assert.deepEqual(weeklySet.map(x=>x.Plan_MT),[1,1.5]);
 assert.throws(() => api.buildWeeklyRecord('W40/2026', ctx.db.sales[0], {Plan_Date:'2026-10-05',Customer_Code:'C1',Item_Code:'I1',Plan_Qty:1,Plan_UOM:'MT',KG_Per_UOM:1000}), /ไม่อยู่ในช่วง/);
 const followup = api.buildFollowupRecords(ctx.db.sales[0], 'Special', 'Leg', 'DMS', [
   {Due_Date:'2026-09-30',Action_Type:'เข้าพบลูกค้า',Customer_Type:'OLD',Customer_Code:'C1',Item_Code:'I1',Plan_Qty:2,Plan_UOM:'BOX',KG_Per_UOM:500,Action_Detail:'Visit'},
@@ -83,4 +91,4 @@ assert.throws(() => api.buildFollowupRecords(ctx.db.sales[0], 'Special', 'Wrong 
   {Due_Date:'2026-09-30',Action_Type:'โทรติดตาม',Customer_Type:'OLD',Customer_Code:'C1',Item_Code:'I1',Plan_Qty:1,Plan_UOM:'MT',KG_Per_UOM:1000}
 ]), /สินค้าในรายการไม่ตรง/);
 assert.match(api.weeklyCalendar([weekly]), /data-week-del="WPLAN-TEST"/, 'weekly Plan can be deleted from calendar');
-console.log('CRM smoke tests passed: script link, tabs, target dimensions, category matching, weekly-base and no-base/Prospect plan saves, UOM conversion, and item-to-category reporting.');
+console.log('CRM smoke tests passed: script link, tabs, target dimensions, category matching, daily Contact/Spot plans for multiple customers, Contact acceptance %, no-base/Prospect plan saves, UOM conversion, and item-to-category reporting.');
