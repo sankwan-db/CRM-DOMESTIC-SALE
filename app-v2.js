@@ -138,7 +138,7 @@ async function importMaster(file){
    if(mtab==='productTypes'&&!obj.Product_Type_ID)obj.Product_Type_ID=id('PTY');if(mtab==='parts'&&!obj.PART_ID)obj.PART_ID=id('PRT');if(mtab==='subParts'&&!obj.SUB_PART_ID)obj.SUB_PART_ID=id('SUB');
    if(mtab==='items'){for(const f of ['Product_Type','PART','SUB_PART'])if(!active(rows(({Product_Type:'productTypes',PART:'parts',SUB_PART:'subParts'}[f]))).some(x=>String(x[f])===String(obj[f])))throw Error(`Item ${obj.Item_Code}: ${f} ไม่พบใน Master`);obj.Product_Type_ID=rows('productTypes').find(x=>String(x.Product_Type)===String(obj.Product_Type))?.Product_Type_ID||'';obj.PART_ID=rows('parts').find(x=>String(x.PART)===String(obj.PART))?.PART_ID||'';obj.SUB_PART_ID=rows('subParts').find(x=>String(x.SUB_PART)===String(obj.SUB_PART))?.SUB_PART_ID||'';if(!obj.Base_UOM)obj.Base_UOM='KG';if(!obj.KG_Per_UOM)obj.KG_Per_UOM=obj.Base_UOM==='KG'?1:1000}
    if(mtab==='itemUoms'){if(!rows('items').some(x=>String(x.Item_Code)===String(obj.Item_Code)))throw Error(`Item Code ${obj.Item_Code} ไม่พบ`);if(!(Number(obj.KG_Per_UOM)>0))throw Error(`Conversion ของ ${obj.Item_Code}/${obj.UOM} ต้องมากกว่า 0`)}
-   const found=index.get(keyOf(obj));if(found)updates.push([found._row,{...found,...obj}]);else adds.push(obj)
+   const found=index.get(keyOf(obj));if(found){const idField={productTypes:'Product_Type_ID',parts:'PART_ID',subParts:'SUB_PART_ID'}[mtab];if(idField&&!String(src[idField]||'').trim())obj[idField]=found[idField];updates.push([found._row,{...found,...obj}])}else adds.push(obj)
   }
   for(const [row,obj] of updates)await updateRow(tab,row,obj);if(adds.length)await append(tab,adds);ping(`นำเข้าแล้ว · เพิ่ม ${adds.length} · ปรับปรุง ${updates.length}`);await loadDb()
  }catch(e){ping(e.message,true)}
