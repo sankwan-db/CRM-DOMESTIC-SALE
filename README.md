@@ -4,7 +4,7 @@ Static single-page web app for GitHub Pages. Google Sheets is the database. No A
 
 ## Current build status
 
-The current build provides Google OAuth and Sheets access, a dashboard, two-step team and Sale targets, Actual Sales import/export, master-data CRUD/import/export, and Sales Action table/Kanban/calendar views. Sales Action supports weekly Contact/Spot plans for existing customers (including copying the prior week's plan) and multi-row follow-up batches for existing customers or Prospects. Plan quantities convert through Item Master UOM factors; plan records retain Product Type/PART/SUB-PART and Actual Sales roll up from Item to category.
+The current build provides Google OAuth and Sheets access, a dashboard, two-step team and Sale targets, Actual Sales import/export, master-data CRUD/import/export, and Sales Action table/Kanban/calendar views. Sales Action supports weekly Contact/Spot plans for existing customers, Excel import/export for weekly plans, automatic Sale defaults from Customer Master with per-week overrides, copying the prior week's plans, and multi-row follow-up batches for existing customers or Prospects. Plan quantities convert through Item Master UOM factors; plan records retain Product Type/PART/SUB-PART and Actual Sales roll up from Item to category.
 
 The repository includes `tests/smoke-test.js` for the two planning flows, category matching, UOM conversions, target allocation matching, and item-to-category reporting. These are source-level tests; verify Google OAuth, Sheet permissions, and live imports with a non-production copy of the workbook before rollout. Direct browser-to-Sheets access has no server-side role enforcement.
 
