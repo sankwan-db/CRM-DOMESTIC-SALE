@@ -108,3 +108,38 @@ function targetObjectiveTests(){const t={Year:2026,Month:10,Channel:'ตลา�
 function runStaticSelfChecks(){const checks=[['ISO week',isoWeek('2026-09-30')==='W40/2026'],['Week range',toWeekRange('W40/2026').start==='2026-09-28'&&toWeekRange('W40/2026').end==='2026-10-04'],['Team split grouped by SUB-PART',targetObjectiveTests()===30],['UOM conversion',Math.abs((2*500)/1000-1)<1e-9],['Actual KG→MT',Math.abs(7250/1000-7.25)<1e-9]];const bad=checks.filter(x=>!x[1]);return {checks,bad}}
 const selfCheck=runStaticSelfChecks();if(selfCheck.bad.length)console.error('CRM static checks failed',selfCheck.bad);else console.info('CRM static checks passed',selfCheck.checks.map(x=>x[0]));
 drawNav();go('dashboard');
+
+
+function masterFieldInput(key,existing={}){
+ const value=existing[key]??'';
+ const masterKey=mtab==='items'&&({Product_Type:'productTypes',PART:'parts',SUB_PART:'subParts'}[key]);
+ if(masterKey){const field=key,list=active(rows(masterKey)).map(x=>x[field]).filter(Boolean);return `<select data-master-key="${esc(key)}"><option value="">เลือก ${esc(key)}</option>${list.map(v=>`<option value="${esc(v)}" ${String(v)===String(value)?'selected':''}>${esc(v)}</option>`).join('')}</select>`}
+ if(mtab==='items'&&key==='Base_UOM')return `<input data-master-key="${esc(key)}" value="${esc(value||'KG')}" placeholder="KG"><small>หน่วยฐานของ Item; ตัวคูณหน่วยอื่นตั้งใน “หน่วยและ Conversion”</small>`;
+ if(mtab==='items'&&key==='KG_Per_UOM')return `<input data-master-key="${esc(key)}" type="number" step="0.0001" value="${esc(value||1)}"><small>KG ต่อ 1 หน่วยฐาน (Base_UOM = KG ให้ใส่ 1)</small>`;
+ if(mtab==='itemUoms'&&key==='KG_Per_UOM')return `<input data-master-key="${esc(key)}" type="number" step="0.0001" value="${esc(value)}" placeholder="เช่น 1.3"><small>ตัวอย่าง: Item_Code ไก่ 1.3 kg, UOM=ตัว, KG_Per_UOM=1.3</small>`;
+ if(['Active','Data_Status'].includes(key))return `<select data-master-key="${esc(key)}"><option value="Y" ${String(value||'Y').toUpperCase()==='Y'?'selected':''}>Y</option><option value="N" ${String(value).toUpperCase()==='N'?'selected':''}>N</option></select>`;
+ return `<input data-master-key="${esc(key)}" value="${esc(value)}">`;
+}
+function masterModal(existing={}){
+ const tab=TAB[mtab],h=dbHeaders[tab]||HEAD[tab]||Object.keys(rows(mtab)[0]||{}).filter(k=>k!=='_row');
+ const labels={Product_Type_ID:'Product Type ID (เว้นว่างให้ระบบสร้าง)',Product_Type:'Product Type',PART_ID:'PART ID (เว้นว่างให้ระบบสร้าง)',PART:'PART',SUB_PART_ID:'SUB-PART ID (เว้นว่างให้ระบบสร้าง)',SUB_PART:'SUB-PART',Item_Code:'Item Code',Item_Name:'ชื่อสินค้า',KG_Per_UOM:'KG_Per_UOM (KG ต่อหน่วย)'};
+ const help=mtab==='itemUoms'?'หน่วยและ Conversion ผูกกับ Item_Code โดยตรง เช่น UOM=ตัว, KG_Per_UOM=1.3 หมายถึง 1 ตัว = 1.3 KG.':mtab==='items'?'Item Code ต้องเลือก Product Type, PART และ SUB-PART จาก Master แยกกัน':'';
+ openModal(`<div class="row space"><div><h3>${existing._row?'แก้ไข':'เพิ่ม'} Master Data</h3><div class="smallmuted">${esc(help)}</div></div><button class="btn" id="modalClose">ปิด</button></div><div class="formgrid">${h.filter(k=>k!=='_row').map(k=>`<div class="field"><label>${esc(labels[k]||k)}</label>${masterFieldInput(k,existing)}</div>`).join('')}</div><div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn primary" id="saveMaster">บันทึก</button></div>`);
+ $('#saveMaster').onclick=async()=>{try{let o={};document.querySelectorAll('[data-master-key]').forEach(x=>o[x.dataset.masterKey]=x.value.trim());if(mtab==='items'){for(const k of ['Product_Type','PART','SUB_PART'])if(!o[k])throw Error('กรุณาเลือก Product Type, PART และ SUB-PART จาก Master');if(!o.Base_UOM)o.Base_UOM='KG';if(!o.KG_Per_UOM)o.KG_Per_UOM=o.Base_UOM==='KG'?'1':'1000'}if(mtab==='itemUoms'&&(!(Number(o.KG_Per_UOM)>0)||!rows('items').some(x=>x.Item_Code===o.Item_Code)))throw Error('กรุณาเลือก Item Code และระบุ Conversion เป็น KG มากกว่า 0');const key=h[0];if(!o[key]&&!existing._row)o[key]=id(({productTypes:'PTY',parts:'PRT',subParts:'SUB',items:'ITEM',itemUoms:'UOM'}[mtab])||'MST');if(!o[key]&&existing._row)o[key]=existing[key];if(existing._row)await updateRow(tab,existing._row,{...existing,...o});else await append(tab,[o]);closeModal();ping(existing._row?'แก้ไข Master แล้ว':'เพิ่ม Master แล้ว');await loadDb()}catch(e){ping(e.message,true)}}
+}
+async function importMaster(file){
+ if(!file)return;
+ try{
+  const wb=XLSX.read(await file.arrayBuffer()),tab=TAB[mtab],sheet=wb.Sheets[tab]||wb.Sheets[wb.SheetNames[0]],data=XLSX.utils.sheet_to_json(sheet,{defval:''});
+  if(!data.length)throw Error(`ไม่พบข้อมูลในชีต ${tab}`);
+  const headers=dbHeaders[tab]||HEAD[tab]||Object.keys(data[0]),natural={productTypes:'Product_Type',parts:'PART',subParts:'SUB_PART',items:'Item_Code',itemUoms:null}[mtab],key=natural||headers[0],existing=rows(mtab),keyOf=o=>mtab==='itemUoms'?`${o.Item_Code}|${o.UOM}`:String(o[key]??''),index=new Map(existing.map(x=>[keyOf(x),x])),adds=[],updates=[];
+  for(const src of data){let obj=Object.fromEntries(headers.map(h=>[h,src[h]??'']));if(!keyOf(obj).replace('|','').trim())continue;
+   if(mtab==='productTypes'&&!obj.Product_Type_ID)obj.Product_Type_ID=id('PTY');if(mtab==='parts'&&!obj.PART_ID)obj.PART_ID=id('PRT');if(mtab==='subParts'&&!obj.SUB_PART_ID)obj.SUB_PART_ID=id('SUB');
+   if(mtab==='items'){for(const f of ['Product_Type','PART','SUB_PART'])if(!active(rows(({Product_Type:'productTypes',PART:'parts',SUB_PART:'subParts'}[f]))).some(x=>String(x[f])===String(obj[f])))throw Error(`Item ${obj.Item_Code}: ${f} ไม่พบใน Master`);if(!obj.Base_UOM)obj.Base_UOM='KG';if(!obj.KG_Per_UOM)obj.KG_Per_UOM=obj.Base_UOM==='KG'?1:1000}
+   if(mtab==='itemUoms'){if(!rows('items').some(x=>String(x.Item_Code)===String(obj.Item_Code)))throw Error(`Item Code ${obj.Item_Code} ไม่พบ`);if(!(Number(obj.KG_Per_UOM)>0))throw Error(`Conversion ของ ${obj.Item_Code}/${obj.UOM} ต้องมากกว่า 0`)}
+   const found=index.get(keyOf(obj));if(found)updates.push([found._row,{...found,...obj}]);else adds.push(obj)
+  }
+  for(const [row,obj] of updates)await updateRow(tab,row,obj);if(adds.length)await append(tab,adds);ping(`นำเข้าแล้ว · เพิ่ม ${adds.length} · ปรับปรุง ${updates.length}`);await loadDb()
+ }catch(e){ping(e.message,true)}
+}
+
