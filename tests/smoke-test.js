@@ -44,7 +44,7 @@ ctx.db = {
   productGroups: [{Product_Group_ID:'G1',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Base_UOM:'MT',Active:'Y'}],
   items: [{Item_Code:'I1',Item_Name:'Demo Item',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Base_UOM:'BOX',KG_Per_UOM:500}],
   sales: [{Sale_ID:'S1',Sale_Name:'Sale One',Channel:'Market'}],
-  customers: [{Customer_Code:'C1',Customer_Name:'Customer One'},{Customer_Code:'C2',Customer_Name:'Customer Two'}], actuals: [], actions: [], weeklyPlans: [],
+  customers: [{Customer_Code:'C1',Customer_Name:'Customer One'},{Customer_Code:'C2',Customer_Name:'Customer Two'},{Customer_Code:'C3',Customer_Name:'Customer Three'}], actuals: [], actions: [], weeklyPlans: [],
   targets: [{Target_ID:'A1',Year:2026,Month:10,Channel:'Market',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Sale_ID:'S1',Target_MT:10,Data_Status:'LIVE'}]
 };
 let source = app.replace(/(?:\n?drawNav\(\);go\('dashboard'\);\s*)+$/, '');
@@ -101,11 +101,13 @@ assert.equal(followup[1].Customer_Code,'');
 assert.equal(followup[1].Prospect_Name,'Prospect X');
 assert.equal(followup[1].Plan_MT,3);
 assert.equal(followup[0].Channel,'Market');
-ctx.db.customerProducts=[{Customer_Code:'C2',Product_Type:'Value Add',PART:'Leg',SUB_PART:'DMS',Active:'Y'}];
+ctx.db.customerProducts=[{Customer_Code:'C2',Product_Type:'Value Add',PART:'Leg',SUB_PART:'DMS',Active:'Y'},{Customer_Code:'C3',Product_Type:'Value Add',PART:'Leg',SUB_PART:'DMS',Active:'Y'}];
 ctx.db.actions=followup;
+ctx.db.weeklyPlans=[{Customer_Code:'C2',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Data_Status:'LIVE'}];
 const oldLov=api.customerLovOptionsForGroup('Special','Leg','DMS');
 assert.match(oldLov,/C1/,'Old customer LOV can reuse prior Action history for the selected category');
-assert.doesNotMatch(oldLov,/C2/,'Old customer LOV excludes unrelated product groups');
+assert.match(oldLov,/C2/,'Customer LOV can reuse a customer from prior weekly Plan');
+assert.doesNotMatch(oldLov,/C3/,'Old customer LOV excludes unrelated product groups');
 ctx.db.itemUoms=[{Item_Code:'I1',UOM:'BOX',KG_Per_UOM:500,Active:'Y'},{Item_Code:'I2',UOM:'BOX',KG_Per_UOM:500,Active:'Y'}];
 ctx.db.items.push({Item_Code:'I2',Item_Name:'Demo Item 2',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Base_UOM:'BOX',KG_Per_UOM:500});
 assert.match(api.groupUomOptions('Special','Leg','DMS'), /BOX.*500/,'Group UOM dropdown uses consistent master conversion');
