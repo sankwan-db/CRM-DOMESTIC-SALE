@@ -10,7 +10,11 @@ assert.match(html, /<script src="app-v2\.js"><\/script>/, 'V2 UI script is loade
 assert.match(html, /M_PRODUCT_GROUP:'G'/, 'Google Sheets loader requests the product group master');
 assert.match(html, /T_WEEKLY_CUSTOMER_PLAN:'W'/, 'Google Sheets loader reads the extended weekly plan columns');
 assert.match(app, /HEAD\[TAB\.weeklyPlans\]=\[\.\.\.HEAD\[TAB\.weeklyPlans\],'Plan_Type','Contact_Completed','Product_Type','PART','SUB_PART'\]/, 'Weekly plans persist at Product Type/PART/SUB-PART grain');
-assert.match(app, /async function clonePreviousWeek\(\)[\s\S]*?weeklySaleSelection[\s\S]*?openWeeklyEditor\(week,saleId,shifted,true\)/, 'Pulling the prior week inherits the Sale from the saved base without requiring selection');
+assert.match(app, /async function clonePreviousWeek\(\)[\s\S]*?shifted=source\.map[\s\S]*?openWeeklyEditor\(week,'',shifted\)/, 'Pulling the prior week copies all saved plans without requiring Sale selection');
+assert.match(app, /data-w-sale[\s\S]*customer\?\.Assigned_Sale_ID/, 'Weekly plan selects Sale per customer from Customer Master');
+assert.match(app, /function downloadWeeklyPlanTemplate[\s\S]*CRM_Weekly_Customer_Plan_Template\.xlsx/, 'Weekly Plan provides an Excel template');
+assert.match(app, /function exportWeeklyPlanExcel[\s\S]*Weekly_Plan_/, 'Weekly Plan supports Excel export');
+assert.match(app, /function importWeeklyPlanExcel[\s\S]*prepareWeeklyPlanImport/, 'Weekly Plan supports validated Excel import');
 assert.match(app, /data-w-prev-metric[\s\S]*?priorWeeklyMetrics/, 'Weekly planning rows show previous-week Plan and Actual context');
 assert.match(app, /data-at="table"[\s\S]*data-at="kanban"[\s\S]*data-at="calendar"/, 'Action tabs are present');
 assert.match(app, /id="baSale"[\s\S]*id="baChannel"[\s\S]*id="baType"[\s\S]*id="baPart"[\s\S]*id="baSub"[\s\S]*id="addActionPlan"[\s\S]*id="saveActionBatch"/, 'No-base Action has one shared header and add/save-all controls');
@@ -45,12 +49,12 @@ ctx.rows = name => ctx.db[name] || [];
 ctx.db = {
   productGroups: [{Product_Group_ID:'G1',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Base_UOM:'MT',Active:'Y'}],
   items: [{Item_Code:'I1',Item_Name:'Demo Item',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Base_UOM:'BOX',KG_Per_UOM:500}],
-  sales: [{Sale_ID:'S1',Sale_Name:'Sale One',Channel:'Market'}],
-  customers: [{Customer_Code:'C1',Customer_Name:'Customer One'},{Customer_Code:'C2',Customer_Name:'Customer Two'},{Customer_Code:'C3',Customer_Name:'Customer Three'}], actuals: [], actions: [], weeklyPlans: [],
+  sales: [{Sale_ID:'S1',Sale_Name:'Sale One',Channel:'Market'},{Sale_ID:'S2',Sale_Name:'Sale Two',Channel:'Market'}],
+  customers: [{Customer_Code:'C1',Customer_Name:'Customer One',Assigned_Sale_ID:'S1',Channel:'Market'},{Customer_Code:'C2',Customer_Name:'Customer Two',Assigned_Sale_ID:'S2',Channel:'Market'},{Customer_Code:'C3',Customer_Name:'Customer Three',Assigned_Sale_ID:'S1',Channel:'Market'}], actuals: [], actions: [], weeklyPlans: [],
   targets: [{Target_ID:'A1',Year:2026,Month:10,Channel:'Market',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Sale_ID:'S1',Target_MT:10,Data_Status:'LIVE'}]
 };
 let source = app.replace(/(?:\n?drawNav\(\);go\('dashboard'\);\s*)+$/, '');
-source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,weeklyPlanTable,contactAcceptancePct,actionRowV2,actionCard,calendarMonth,groupUomOptions,customerLovOptionsForGroup,priorWeeklyMetrics};';
+source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,weeklyPlanTable,contactAcceptancePct,actionRowV2,actionCard,calendarMonth,groupUomOptions,customerLovOptionsForGroup,priorWeeklyMetrics,prepareWeeklyPlanImport};';
 vm.runInNewContext(source, ctx, {filename:'app-v2.js'});
 const api = ctx.crmTestApi;
 assert.equal(api.selfCheck.bad.length, 0, 'built-in date/UOM checks pass');
@@ -83,7 +87,8 @@ const weeklySet=[
   api.buildWeeklyRecord('W40/2026',ctx.db.sales[0],{Plan_Date:'2026-09-28',Customer_Code:'C1',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Plan_Qty:2,Plan_UOM:'BOX',KG_Per_UOM:500,Plan_Type:'Contact'}),
   api.buildWeeklyRecord('W40/2026',ctx.db.sales[0],{Plan_Date:'2026-09-29',Customer_Code:'C2',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Plan_Qty:3,Plan_UOM:'BOX',KG_Per_UOM:500,Plan_Type:'Spot'})
 ];
-assert.equal(weeklySet.length,2,'one Sale can plan one product group for multiple customers');
+assert.equal(weeklySet.length,2,'one coordinator batch can contain plans for multiple customers');
+assert.deepEqual(weeklySet.map(x=>x.Sale_ID),['S1','S2'],'weekly Sale defaults independently from each Customer Master row');
 ctx.db.actuals=[{Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Sales_Date:'2026-09-30',Qty_MT:.5,Data_Status:'LIVE'}];
 const weeklyMatrix=api.weeklyPlanTable([weekly]);
 for(const text of ['28/09/2026','30/09/2026','<th>Plan</th><th>Actual</th>'])assert.ok(weeklyMatrix.includes(text),`weekly matrix includes ${text}`);
@@ -91,6 +96,11 @@ assert.match(weeklyMatrix,/50\.0%/,'Contract acceptance is calculated from impor
 ctx.db.weeklyPlans=[{Week_Key:'W40/2026',Sale_ID:'S1',Customer_Code:'C1',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Plan_MT:1,Data_Status:'LIVE'}];
 ctx.db.actuals=[{Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Sales_Date:'2026-09-30',Qty_MT:.5,Data_Status:'LIVE'}];
 assert.deepEqual(JSON.parse(JSON.stringify(api.priorWeeklyMetrics('W41/2026','S1','C1','Special','Leg','DMS'))),{week:'W40/2026',planMT:1,actualMT:.5},'Next-week plan carries previous-week Plan and Actual for the same Sale/customer/category');
+const importedWeekly=api.prepareWeeklyPlanImport([{Week_Key:'W40/2026',Plan_Date:'2026-09-28',Plan_Type:'Contact',Customer_Code:'C2',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Plan_Qty:2,Plan_UOM:'BOX',Sale_ID:''}],'W40/2026');
+assert.equal(importedWeekly[0].Sale_ID,'S2','Excel import defaults Sale from Customer Master');
+assert.equal(importedWeekly[0].Plan_MT,1,'Excel import converts Plan quantities using Item Master UOM');
+const overriddenWeekly=api.prepareWeeklyPlanImport([{Week_Key:'W40/2026',Plan_Date:'2026-09-28',Plan_Type:'Contact',Customer_Code:'C2',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Plan_Qty:2,Plan_UOM:'BOX',Sale_ID:'S1'}],'W40/2026');
+assert.equal(overriddenWeekly[0].Sale_ID,'S1','Excel import allows a week-specific Sale override');
 assert.deepEqual(weeklySet.map(x=>x.Plan_Type),['Contact','Spot'],'Contact and Spot are stored separately by scheduled date');
 assert.deepEqual(weeklySet.map(x=>x.Plan_MT),[1,1.5]);
 assert.throws(() => api.buildWeeklyRecord('W40/2026', ctx.db.sales[0], {Plan_Date:'2026-10-05',Customer_Code:'C1',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Plan_Qty:1,Plan_UOM:'MT',KG_Per_UOM:1000}), /ไม่อยู่ในช่วง/);
@@ -127,4 +137,4 @@ const action={Action_ID:'ACT-1',Due_Date:'2026-09-30',Next_Action_Date:'2026-10-
 assert.match(api.actionRowV2(action), /Send quotation[\s\S]*2026-10-02[\s\S]*Follow up with price/, 'Action details include next step, due date, and manager comment');
 assert.match(api.actionCard(action), /2026-10-02/, 'Kanban shows the latest Next Action date');
 assert.match(api.calendarMonth([action]), /2026-10-02/, 'Calendar places Action on the latest Next Action date');
-console.log('CRM smoke tests passed: script link, tabs, target dimensions, category matching, weekly matrix Plan/Actual by category, multi-customer Contract/Spot planning, Contact acceptance %, no-base batch saves at category grain, grouped UOM master conversion, and item-to-category reporting.');
+console.log('CRM smoke tests passed: script link, tabs, target dimensions, category matching, weekly matrix Plan/Actual by category, multi-customer Contract/Spot planning, Contact acceptance %, no-base batch saves at category grain, grouped UOM master conversion, weekly Sale defaults and Excel plan import/export, and item-to-category reporting.');
