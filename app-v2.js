@@ -144,3 +144,5 @@ async function importMaster(file){
  }catch(e){ping(e.message,true)}
 }
 
+
+function actualUomConversion(item,uom){const matches=rows('itemUoms').filter(x=>String(x.Item_Code)===String(item?.Item_Code)&&String(x.UOM).toLowerCase()===String(uom||'').toLowerCase()&&String(x.Active||'Y').toUpperCase()!=='N');if(matches.length>1)return {factor:0,error:'Item/UOM ซ้ำใน M_ITEM_UOM'};if(matches.length===1){const factor=Number(matches[0].KG_Per_UOM);return factor>0?{factor,error:''}:{factor:0,error:'Conversion KG_Per_UOM ไม่ถูกต้อง'}}if(String(item?.Base_UOM||'').toLowerCase()===String(uom||'').toLowerCase()){const factor=Number(item?.KG_Per_UOM||1);return factor>0?{factor,error:''}:{factor:0,error:'Conversion KG_Per_UOM ไม่ถูกต้อง'}}return {factor:0,error:'UOM ไม่พบสำหรับ Item Code ใน M_ITEM_UOM'}}
