@@ -5,8 +5,6 @@ let actionMode='followup',weeklyRowCount=0,selectedTeamTarget=null,weeklyWeekSel
 const APP_OAUTH_ID='227097865826-pp11vn2t5qtg69q8ito5nb9g9t165e47.apps.googleusercontent.com';
 CONFIG.oauthClientId=APP_OAUTH_ID;
 // Extended CRM schemas: category-level Plan, weekly Contact/Spot metrics.
-TAB.productGroups='M_PRODUCT_GROUP';
-HEAD.M_PRODUCT_GROUP=['Product_Group_ID','Product_Type','PART','SUB_PART','Base_UOM','Active','Data_Status'];
 HEAD[TAB.teamTargets]=[...HEAD[TAB.teamTargets],'Product_Type','PART'];
 HEAD[TAB.targets]=[...HEAD[TAB.targets],'Product_Type','PART','SUB_PART'];
 HEAD[TAB.weeklyPlans]=[...HEAD[TAB.weeklyPlans],'Plan_Type','Contact_Completed','Product_Type','PART','SUB_PART','Group_Product_ID','Group_Product_Name'];
@@ -187,9 +185,6 @@ async function importMaster(file){
 function actualUomConversion(item,uom){const matches=rows('itemUoms').filter(x=>String(x.Item_Code)===String(item?.Item_Code)&&String(x.UOM).toLowerCase()===String(uom||'').toLowerCase()&&String(x.Active||'Y').toUpperCase()!=='N');if(matches.length>1)return {factor:0,error:'Item/UOM ซ้ำใน M_ITEM_UOM'};if(matches.length===1){const factor=Number(matches[0].KG_Per_UOM);return factor>0?{factor,error:''}:{factor:0,error:'Conversion KG_Per_UOM ไม่ถูกต้อง'}}if(String(item?.Base_UOM||'').toLowerCase()===String(uom||'').toLowerCase()){const factor=Number(item?.KG_Per_UOM||1);return factor>0?{factor,error:''}:{factor:0,error:'Conversion KG_Per_UOM ไม่ถูกต้อง'}}return {factor:0,error:'UOM ไม่พบสำหรับ Item Code ใน M_ITEM_UOM'}}
 
 
-// Product groups are maintained in M_GROUP_PRODUCT; do not load or use M_PRODUCT_GROUP.
-delete TAB.productGroups;
-delete HEAD.M_PRODUCT_GROUP;
 function categoryMasterRows(){
  const groups=active(rows('groupProducts')),out=[],seen=new Set();
  for(const g of groups){const type=rows('productTypes').find(x=>String(x.Product_Type_ID)===String(g.Product_Type_ID)),part=rows('parts').find(x=>String(x.PART_ID)===String(g.PART_ID)),sub=rows('subParts').find(x=>String(x.SUB_PART_ID)===String(g.SUB_PART_ID)&&String(x.PART_ID)===String(g.PART_ID)),row={Product_Type:type?.Product_Type||'',PART:part?.PART||'',SUB_PART:sub?.SUB_PART||'',Product_Type_ID:g.Product_Type_ID,PART_ID:g.PART_ID,SUB_PART_ID:g.SUB_PART_ID,Group_Product_ID:g.Group_Product_ID,Group_Product_Name:g.Group_Product_Name,Active:g.Active||'Y',Data_Status:g.Data_Status||'LIVE'};
