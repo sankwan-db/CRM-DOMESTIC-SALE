@@ -100,13 +100,13 @@
 .weekly-matrix .weekly-type-group{height:34px}
 .weekly-matrix .weekly-type-group th{position:sticky;left:0;z-index:7;width:120px;min-width:120px;text-align:left;background:#f4c861;color:#3a2b00;border-right:1px solid #e9bb45}
 .weekly-matrix .weekly-type-group td{background:#fff0c2;color:#6e571b;text-align:left;font-weight:600}
-.weekly-matrix thead tr:first-child>:nth-child(1),.weekly-matrix tbody tr:not(.weekly-type-group)>:nth-child(1){position:sticky;left:0;z-index:6;background:#f1f5fb}
-.weekly-matrix thead tr:first-child>:nth-child(2),.weekly-matrix tbody tr:not(.weekly-type-group)>:nth-child(2){position:sticky;left:120px;z-index:6;background:#f1f5fb}
-.weekly-matrix thead tr:first-child>:nth-child(3),.weekly-matrix tbody tr:not(.weekly-type-group)>:nth-child(3){position:sticky;left:220px;z-index:6;background:#fff}
-.weekly-matrix thead tr:first-child>:nth-child(4),.weekly-matrix tbody tr:not(.weekly-type-group)>:nth-child(4){position:sticky;left:385px;z-index:6;background:#fff}
-.weekly-matrix thead tr:first-child>:nth-child(5),.weekly-matrix tbody tr:not(.weekly-type-group)>:nth-child(5){position:sticky;left:500px;z-index:6;background:#fff}
-.weekly-matrix thead tr:first-child>:nth-child(6),.weekly-matrix tbody tr:not(.weekly-type-group)>:nth-child(6){position:sticky;left:645px;z-index:6;background:#fff}
-.weekly-matrix thead tr:first-child>:nth-child(-n+6){z-index:9;background:#e9eff8}
+.weekly-matrix thead tr>:nth-child(1),.weekly-matrix tbody tr:not(.weekly-type-group)>:nth-child(1){position:sticky;left:0;z-index:6;background:#f1f5fb}
+.weekly-matrix thead tr>:nth-child(2),.weekly-matrix tbody tr:not(.weekly-type-group)>:nth-child(2){position:sticky;left:120px;z-index:6;background:#f1f5fb}
+.weekly-matrix thead tr>:nth-child(3),.weekly-matrix tbody tr:not(.weekly-type-group)>:nth-child(3){position:sticky;left:220px;z-index:6;background:#fff}
+.weekly-matrix thead tr>:nth-child(4),.weekly-matrix tbody tr:not(.weekly-type-group)>:nth-child(4){position:sticky;left:385px;z-index:6;background:#fff}
+.weekly-matrix thead tr>:nth-child(5),.weekly-matrix tbody tr:not(.weekly-type-group)>:nth-child(5){position:sticky;left:500px;z-index:6;background:#fff}
+.weekly-matrix thead tr>:nth-child(6),.weekly-matrix tbody tr:not(.weekly-type-group)>:nth-child(6){position:sticky;left:645px;z-index:6;background:#fff}
+.weekly-matrix thead tr>:nth-child(-n+6){z-index:9;background:#e9eff8}
 .weekly-matrix .weekly-plan-inline{width:64px;max-width:100%;height:25px;padding:3px 4px;text-align:right;border:1px solid #e7c66c;border-radius:5px;background:#fffaf0;color:#19264b}
 .weekly-matrix .weekly-plan-edit small{display:block;font-size:9px;color:#7886a1;line-height:10px}
 .weekly-matrix td.actual-cell{background:#eff9f5}
@@ -184,4 +184,4 @@ function setupPage(){return pageHead('ตั้งค่าการเชื่
 function render(){if(!$('#app'))return;if(!token){$('#app').innerHTML=page==='setup'?setupPage():pageHead('CRM Domestic Sale','เชื่อมต่อบัญชี Google ที่มีสิทธิ์แก้ไข Google Sheet เพื่อเริ่มใช้งาน')+`<div class="card"><div class="empty">ระบบเก็บข้อมูลบน Google Sheet ของคุณ<br>กดปุ่มเชื่อมต่อที่มุมขวาบน แล้วเลือกบัญชี Gmail ที่ได้รับสิทธิ์ Editor</div></div>`;return}if(page==='dashboard')$('#app').innerHTML=dashboard();if(page==='targets')$('#app').innerHTML=targetsPage();if(page==='import')$('#app').innerHTML=importPage();if(page==='actions')$('#app').innerHTML=actionPage();if(page==='master')$('#app').innerHTML=masterPage();bindFilters();$('#app').querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>{targetTab=+b.dataset.tt;render();drawTargets()});if(page==='targets'){drawTargets();$('#tshow').onclick=drawTargets;['tyear','tmonth','tchannel'].forEach(x=>$('#'+x).onchange=drawTargets)}if(page==='actions'){$('#newAction').onclick=()=>actionForm();$('#app').querySelectorAll('[data-at]').forEach(b=>b.onclick=()=>{actTab=b.dataset.at;render()});drawActions()}if(page==='import'){ $('#previewImport').onclick=previewImport;$('#downloadImportTemplate').onclick=()=>downloadTemplate();$('#exportActual').onclick=()=>exportRows(rows('actuals'),'T_SALES_ACTUAL')}if(page==='master'){$('#app').querySelectorAll('[data-mtab]').forEach(b=>b.onclick=()=>{mtab=b.dataset.mtab;render();drawMaster()});drawMaster()}$('#exportDashboard')?.addEventListener('click',()=>exportRows(currentFiltered(),'Dashboard_Actual'))}
 function downloadTemplate(){let wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([['Sales_Date','Item_Code','Customer_Code','Qty','UOM'],[today(),'ITEM-001','CUST-001',1000,'KG']]);XLSX.utils.book_append_sheet(wb,ws,'Sales Import');XLSX.writeFile(wb,'CRM_Domestic_Sales_Import_Template.xlsx')}
 drawNav();go('dashboard');
-</script><script src="app-v2.js?v=production-forecast-import-template-20261004"></script></body></html>
+</script><script src="app-v2.js?v=weekly-inline-group-layout-20261004"></script></body></html>
