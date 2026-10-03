@@ -424,8 +424,17 @@ function groupPlanUomMeta(type,part,sub,groupId=''){
 }
 function groupUomFactor(type,part,sub,uom,groupId=''){const x=groupPlanUomMeta(type,part,sub,groupId).find(v=>v.key===String(uom||'').trim().toUpperCase());return x?.uniform?x.factor:0}
 function groupPlanUomAvailable(type,part,sub,uom,groupId=''){return groupPlanUomMeta(type,part,sub,groupId).some(x=>x.key===String(uom||'').trim().toUpperCase())}
-function groupUomOptions(type,part,sub,selected='',allowVariable=false,groupId=''){
- const options=groupPlanUomMeta(type,part,sub,groupId).filter(x=>allowVariable||x.uniform),html=options.map(x=>'<option value="'+esc(x.label)+'" data-kg="'+(x.uniform?x.factor:'')+'" data-variable="'+(x.uniform?'N':'Y')+'" '+(String(selected).toUpperCase()===x.key?'selected':'')+'>'+esc(x.label)+' · '+(x.uniform?'1 '+esc(x.label)+' = '+fmt(x.factor,3)+' KG':'แปลงตามอัตราของแต่ละ Item')+'</option>').join('');
+function itemPlanUomMeta(itemCode){
+ const item=active(rows('items')).find(x=>String(x.Item_Code)===String(itemCode));if(!item)return [];
+ const meta=new Map([['KG',{key:'KG',label:'KG',factor:1}],['MT',{key:'MT',label:'MT',factor:1000}]]);
+ const base=String(item.Base_UOM||'').trim(),baseFactor=Number(item.KG_Per_UOM||0);if(base&&baseFactor>0)meta.set(base.toUpperCase(),{key:base.toUpperCase(),label:base,factor:baseFactor});
+ for(const u of rows('itemUoms').filter(x=>String(x.Item_Code)===String(itemCode)&&String(x.Active||'Y').toUpperCase()!=='N')){
+  const label=String(u.UOM||'').trim(),factor=Number(u.KG_Per_UOM||0);if(label&&factor>0)meta.set(label.toUpperCase(),{key:label.toUpperCase(),label,factor})
+ }
+ return [...meta.values()].sort((a,b)=>a.key==='KG'?-1:b.key==='KG'?1:a.key==='MT'?-1:b.key==='MT'?1:a.label.localeCompare(b.label,'th'))
+}
+function groupUomOptions(type,part,sub,selected='',allowVariable=false,groupId='',itemCode=''){
+ const options=itemCode?itemPlanUomMeta(itemCode).map(x=>({...x,uniform:true})):groupPlanUomMeta(type,part,sub,groupId).filter(x=>allowVariable||x.uniform),html=options.map(x=>'<option value="'+esc(x.label)+'" data-kg="'+(x.uniform?x.factor:'')+'" data-variable="'+(x.uniform?'N':'Y')+'" '+(String(selected).toUpperCase()===x.key?'selected':'')+'>'+esc(x.label)+' · '+(x.uniform?'1 '+esc(x.label)+' = '+fmt(x.factor,3)+' KG':'แปลงตามอัตราของแต่ละ Item')+'</option>').join('');
  if(selected&&!options.some(x=>x.key===String(selected).trim().toUpperCase()))return html+'<option value="'+esc(selected)+'" selected data-invalid="Y">⚠ '+esc(selected)+' · ไม่พบ Conversion ครบทุก Item</option>';
  return html;
 }
