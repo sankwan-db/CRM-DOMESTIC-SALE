@@ -1,6 +1,6 @@
 /* CRM Domestic Sale V2: filters, compact layout, team allocation drilldown and weekly/customer action flows. */
 const filterState={periodMode:'month',years:[String(new Date().getFullYear())],periods:[],channels:[],sales:[],types:[],parts:[],subparts:[],products:[],groupProducts:[],statuses:[],targetYears:[String(new Date().getFullYear())],targetMonths:[String(new Date().getMonth()+1).padStart(2,'0')],targetChannels:[]};
-let weeklyHeaderSync=false,actionMode='followup',weeklyRowCount=0,selectedTeamTarget=null,weeklyWeekSelection='',dashView='summary',detailChannel='ALL',detailExpanded=new Set();
+let weeklyHeaderSync=false,weeklyItemSync=false,actionMode='followup',weeklyRowCount=0,selectedTeamTarget=null,weeklyWeekSelection='',dashView='summary',detailChannel='ALL',detailExpanded=new Set();
 
 const APP_OAUTH_ID='227097865826-pp11vn2t5qtg69q8ito5nb9g9t165e47.apps.googleusercontent.com';
 CONFIG.oauthClientId=APP_OAUTH_ID;
@@ -183,7 +183,7 @@ function weekRowHTML(o={},n=0){
 function bindWeekRows(){
  document.querySelectorAll('[data-remove-week]').forEach(b=>b.onclick=()=>b.closest('[data-week-row]').remove());
  document.querySelectorAll('[data-add-w-product]').forEach(b=>b.onclick=()=>{const source=b.closest('[data-week-row]'),scope=source.dataset.customerScope,customer=source.querySelector('[data-w-customer]')?.value,sale=source.querySelector('[data-w-sale]')?.value;if(!customer){ping('เลือกลูกค้าก่อนเพิ่มสินค้า',true);return}addWeeklyEditorRow({Customer_Code:customer,Sale_ID:sale,_sharedHeader:true,_customerScope:scope,plans:[{}]})});
- document.querySelectorAll('[data-add-w-detail]').forEach(b=>b.onclick=()=>{const g=b.closest('[data-week-row]'),box=g.querySelector('[data-w-details]'),n=box.querySelectorAll('[data-w-detail]').length,dates=[...box.querySelectorAll('[data-w-date]')],last=dates[dates.length-1],date=last?.value||toWeekRange($('#wWeek')?.value||nextPlanningWeek()).start,planType=b.dataset.planType||'Spot',type=g.querySelector('[data-w-product-type]').value,part=g.querySelector('[data-w-part]').value,sub=g.querySelector('[data-w-subpart]').value;box.insertAdjacentHTML('beforeend',weeklyPlanDetailLine({Plan_Date:date,Plan_Type:planType},n,type,part,sub,g.querySelector('[data-w-group-product]')?.value||''));const added=box.lastElementChild,remove=added?.querySelector('[data-remove-w-detail]');if(remove)remove.onclick=()=>added.remove();enableSelectSearch(box)});
+ document.querySelectorAll('[data-add-w-detail]').forEach(b=>b.onclick=()=>{const g=b.closest('[data-week-row]'),box=g.querySelector('[data-w-details]'),n=box.querySelectorAll('[data-w-detail]').length,dates=[...box.querySelectorAll('[data-w-date]')],last=dates[dates.length-1],date=last?.value||toWeekRange($('#wWeek')?.value||nextPlanningWeek()).start,planType=b.dataset.planType||'Spot',type=g.querySelector('[data-w-product-type]').value,part=g.querySelector('[data-w-part]').value,sub=g.querySelector('[data-w-subpart]').value;box.insertAdjacentHTML('beforeend',weeklyPlanDetailLine({Plan_Date:date,Plan_Type:planType},n,type,part,sub,g.querySelector('[data-w-group-product]')?.value||'',g.querySelector('[data-w-item-code]')?.value||''));const added=box.lastElementChild,remove=added?.querySelector('[data-remove-w-detail]');if(remove)remove.onclick=()=>added.remove();enableSelectSearch(box)});
  document.querySelectorAll('[data-remove-w-detail]').forEach(b=>b.onclick=()=>b.closest('[data-w-detail]').remove());
  document.querySelectorAll('[data-w-product-type]').forEach(s=>s.onchange=()=>{const row=s.closest('[data-week-row]');fillWeeklyRowGroups(row,'type');updateWeeklyPreviousMetric(row)});
  document.querySelectorAll('[data-w-part]').forEach(s=>s.onchange=()=>{const row=s.closest('[data-week-row]');fillWeeklyRowGroups(row,'part');updateWeeklyPreviousMetric(row)});
@@ -207,7 +207,8 @@ function fillWeeklyRowGroups(row,changed){
  enableSelectSearch(row)
 }
 function selectWeeklyItem(row,itemCode){
- const code=String(itemCode||'');if(!code){fillWeeklyRowGroups(row,'sub');updateWeeklyPreviousMetric(row);return}
+ if(weeklyItemSync)return;weeklyItemSync=true;
+ try{const code=String(itemCode||'');if(!code){fillWeeklyRowGroups(row,'sub');updateWeeklyPreviousMetric(row);return}
  const item=active(rows('items')).find(x=>String(x.Item_Code)===code);if(!item)return;
  const type=row.querySelector('[data-w-product-type]'),part=row.querySelector('[data-w-part]'),sub=row.querySelector('[data-w-subpart]'),group=row.querySelector('[data-w-group-product]'),itemSel=row.querySelector('[data-w-item-code]');
  type.value=item.Product_Type||'';fillWeeklyRowGroups(row,'type');
@@ -216,7 +217,7 @@ function selectWeeklyItem(row,itemCode){
  group.value=item.Group_Product_ID||'';fillWeeklyRowGroups(row,'group');
  itemSel.value=code;
  for(const sel of [type,part,sub,group,itemSel])sel.dispatchEvent(new Event('change',{bubbles:true}));
- updateWeeklyPreviousMetric(row)
+ updateWeeklyPreviousMetric(row)}finally{weeklyItemSync=false}
 }
 function customerMasterSummary(c){if(!c)return 'เลือกชื่อลูกค้าเพื่อดึงข้อมูลจาก Customer Master';const lookup=(key,code,name)=>{const value=c[key]||'';if(!value)return '';const m=rows(code).find(x=>String(x[code==='customerSegments'?'Customer_Segment_Code':code==='routes'?'Route_Code':'Customer_Status_Code'])===String(value));return m?.[name]||value},channel=c.Channel||c.Channel_Code||'',channelRow=rows('channels').find(x=>String(x.Channel_Code)===String(channel)),sale=rows('sales').find(x=>String(x.Sale_ID)===String(c.Assigned_Sale_ID));return ['Channel: '+(channelRow?.Channel_Name||channel),'Segment: '+lookup('Customer_Segment','customerSegments','Customer_Segment_Name'),'Route: '+lookup('Route','routes','Route_Name'),'Status: '+lookup('Customer_Status','customerStatuses','Customer_Status_Name'),'Sale: '+(sale?.Sale_Name||c.Assigned_Sale_ID||'')].filter(x=>x.split(': ')[1]).join(' · ')}
 function updateWeeklyCustomerInfo(row){const box=row.querySelector('[data-w-customer-meta]'),c=rows('customers').find(x=>x.Customer_Code===row.querySelector('[data-w-customer]')?.value);if(box)box.textContent=customerMasterSummary(c)}
@@ -228,7 +229,7 @@ async function saveWeeklyBatch(){
   const week=$('#wWeek').value,groups=[...document.querySelectorAll('[data-week-row]')],objects=[];
   if(!groups.length)throw Error('เพิ่มลูกค้าและกลุ่มสินค้าอย่างน้อย 1 ชุด');
   for(let gi=0;gi<groups.length;gi++){
-   const g=groups[gi],shared={Sale_ID:g.querySelector('[data-w-sale]')?.value||'',Customer_Code:g.querySelector('[data-w-customer]')?.value||'',Product_Type:g.querySelector('[data-w-product-type]')?.value||'',PART:g.querySelector('[data-w-part]')?.value||'',SUB_PART:g.querySelector('[data-w-subpart]')?.value||'',Group_Product_ID:g.querySelector('[data-w-group-product]')?.value||''};
+   const g=groups[gi],shared={Sale_ID:g.querySelector('[data-w-sale]')?.value||'',Customer_Code:g.querySelector('[data-w-customer]')?.value||'',Product_Type:g.querySelector('[data-w-product-type]')?.value||'',PART:g.querySelector('[data-w-part]')?.value||'',SUB_PART:g.querySelector('[data-w-subpart]')?.value||'',Group_Product_ID:g.querySelector('[data-w-group-product]')?.value||'',Item_Code:g.querySelector('[data-w-item-code]')?.value||''};
    const details=[...g.querySelectorAll('[data-w-detail]')],activeDetails=details.filter(el=>String(el.querySelector('[data-w-qty]')?.value||'').trim()!==''||el.dataset.planId||el.dataset.sheetRow),hasHeader=!!(shared.Customer_Code||shared.Sale_ID||shared.Product_Type||shared.PART||shared.SUB_PART||shared.Group_Product_ID);
    if(!activeDetails.length&&!hasHeader)continue;
    if(!shared.Customer_Code||!shared.Sale_ID||!shared.Product_Type||!shared.PART||!shared.SUB_PART)throw Error('ชุดสินค้า '+(gi+1)+': กรุณาเลือก ลูกค้า, Sale, Product Type, PART และ SUB-PART ให้ครบ');
@@ -239,12 +240,12 @@ async function saveWeeklyBatch(){
     if(!(Number(qtyText)>0))throw Error('ชุดสินค้า '+(gi+1)+' แผนรายการ '+(di+1)+': จำนวน Plan ต้องมากกว่า 0');
     if(!date||!planType||!u?.value)throw Error('ชุดสินค้า '+(gi+1)+' แผนรายการ '+(di+1)+': กรุณากรอกวันที่ ประเภทแผน และหน่วย Plan');
     const old=rows('weeklyPlans').find(x=>x.Plan_ID===el.dataset.planId);
-    try{objects.push(buildWeeklyRecord(week,null,{...shared,Plan_Date:date,Plan_Qty:qtyText,Plan_UOM:u.value,KG_Per_UOM:u.dataset.kg,Plan_Type:planType,Plan_ID:el.dataset.planId,Version:old?.Version,_row:el.dataset.sheetRow}))}catch(err){throw Error('ชุดสินค้า '+(gi+1)+' แผนรายการ '+(di+1)+': '+err.message)}
+    try{objects.push(buildWeeklyRecord(week,null,{...shared,Plan_Date:date,Plan_Qty:qtyText,Plan_UOM:u.value,KG_Per_UOM:u.dataset.kg,Item_Code:shared.Item_Code,Plan_Type:planType,Plan_ID:el.dataset.planId,Version:old?.Version,_row:el.dataset.sheetRow}))}catch(err){throw Error('ชุดสินค้า '+(gi+1)+' แผนรายการ '+(di+1)+': '+err.message)}
    }
   }
   if(!objects.length)throw Error('ไม่พบรายการ Plan ที่กรอกจำนวนแล้ว กรุณากรอกจำนวน Plan ก่อนบันทึก');
   const unique=new Set();
-  for(const x of objects){const k=[x.Customer_Code,x.Sale_ID,x.Product_Type,x.PART,x.SUB_PART,x.Group_Product_ID||'',x.Plan_Date,x.Plan_Type].join('|');if(unique.has(k))throw Error('มีวันและประเภท Plan ซ้ำกันในลูกค้า/กลุ่มสินค้าเดียวกัน');unique.add(k)}
+  for(const x of objects){const k=[x.Customer_Code,x.Sale_ID,x.Product_Type,x.PART,x.SUB_PART,x.Group_Product_ID||'',x.Item_Code||'',x.Plan_Date,x.Plan_Type].join('|');if(unique.has(k))throw Error('มีวันและประเภท Plan ซ้ำกันในลูกค้า/กลุ่มสินค้าเดียวกัน');unique.add(k)}
   const newRows=[];
   for(const o of objects){if(o._row){const old=rows('weeklyPlans').find(x=>x.Plan_ID===o.Plan_ID);o.Version=Number(old?.Version||0)+1;await updateRow(TAB.weeklyPlans,o._row,o)}else newRows.push(o)}
   if(newRows.length)await append(TAB.weeklyPlans,newRows);
@@ -252,12 +253,12 @@ async function saveWeeklyBatch(){
  }catch(e){ping(e.message,true)}
 }
 async function deleteWeeklyPlan(planId){const x=rows('weeklyPlans').find(p=>p.Plan_ID===planId);if(!x||!confirm('ลบแผนรายการนี้หรือไม่?'))return;try{await updateRow(TAB.weeklyPlans,x._row,{...x,Data_Status:'DELETED',Version:Number(x.Version||0)+1,Saved_By:me,Saved_At:new Date().toISOString()});await append(TAB.actionHistory,[{History_ID:id('HIS'),Action_ID:planId,Changed_At:new Date().toISOString(),Changed_By:me,Event_Type:'WEEKLY_PLAN_DELETE',Old_Plan_MT:x.Plan_MT,Note:`ลบแผน ${x.Week_Key} / ${x.Customer_Code} / ${x.Item_Code}`}]);ping('ลบแผนรายสัปดาห์แล้ว');await loadDb()}catch(e){ping(e.message,true)}}
-function weeklyGroupKey(x){return [x.Customer_Code,x.Sale_ID,x.Product_Type,x.PART,x.SUB_PART,x.Group_Product_ID||''].join('|')}
+function weeklyGroupKey(x){return [x.Customer_Code,x.Sale_ID,x.Product_Type,x.PART,x.SUB_PART,x.Group_Product_ID||'',x.Item_Code||''].join('|')}
 function addWeeklyEditorRow(o={}){const box=$('#weeklyPlanRows'),n=box.querySelectorAll('[data-week-row]').length;box.insertAdjacentHTML('beforeend',weekRowHTML(o,n));enableSelectSearch(box);bindWeekRows()}
 function openWeeklyEditor(week,saleId,initial=[]){const byGroup=new Map();for(const x of (initial.length?initial:[{}])){const k=weeklyGroupKey(x);if(!byGroup.has(k))byGroup.set(k,{...x,plans:[]});byGroup.get(k).plans.push(x)}openModal(`<div class="row space"><div><h3>Plan รายสัปดาห์ · ลูกค้ามีฐาน</h3><div class="smallmuted">เลือกลูกค้าและเลือก Product Type / PART / SUB-PART ได้ทุกช่อง · ระบบเติมค่าที่ระบุได้ · เลือก Group Product เมื่อต้อง Plan ระดับนั้น · Sale ตั้งต้นจาก Customer Master และแก้ได้</div></div><button class="btn" id="modalClose">ปิด</button></div><div class="formgrid"><div class="field"><label>สัปดาห์เป้าหมาย</label><select id="wWeek">${weekChoices().map(x=>`<option value="${x}" ${x===week?'selected':''}>${x.replace(/^W/,'WEEK ')}</option>`).join('')}</select></div></div><div class="row space" style="margin:16px 0 8px"><div><b>ลูกค้าและกลุ่มสินค้า</b><div class="smallmuted">ส่วนหัวเลือกครั้งเดียว · รายละเอียดเพิ่มวันที่, ประเภท Contact/Spot, จำนวน และหน่วย Plan</div></div><button type="button" class="btn" id="addWeeklyRow">+ เพิ่มลูกค้า / กลุ่มสินค้า</button></div><div id="weeklyPlanRows"></div><div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn primary" id="saveWeekly">บันทึกแผนทั้งหมด</button></div>`);weeklyRowCount=0;[...byGroup.values()].forEach(x=>addWeeklyEditorRow(x));$('#wWeek').onchange=()=>document.querySelectorAll('[data-week-row]').forEach(updateWeeklyPreviousMetric);$('#addWeeklyRow').onclick=()=>addWeeklyEditorRow({plans:[{}]});$('#saveWeekly').onclick=saveWeeklyBatch}
 function openWeeklyEditor(week,saleId,initial=[]){openModal(`<div class="row space"><div><h3>Plan รายสัปดาห์ · ลูกค้ามีฐาน</h3><div class="smallmuted">ทีมประสานงานขายบันทึกแผนครั้งเดียวหลายลูกค้า · Sale เริ่มต้นจาก Customer Master และแก้ได้ต่อรายการ</div></div><button class="btn" id="modalClose">ปิด</button></div><div class="formgrid"><div class="field"><label>สัปดาห์</label><select id="wWeek">${weekChoices().map(x=>`<option value="${x}" ${x===week?'selected':''}>${x.replace(/^W/,'WEEK ')}</option>`).join('')}</select></div></div><div class="row space" style="margin:16px 0 8px"><div><b>Header ลูกค้า</b><div class="smallmuted">เลือกชื่อลูกค้าและ Sale ครั้งเดียว · เพิ่มสินค้า/แผนของลูกค้ารายเดิมจากปุ่มในชุดสินค้า</div></div><button type="button" class="btn" id="addWeeklyRow">+ เพิ่มลูกค้าใหม่</button></div><div id="weeklyPlanRows"></div><div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn primary" id="saveWeekly">บันทึกแผนสัปดาห์</button></div>`);weeklyRowCount=0;(initial.length?initial:[{}]).forEach(x=>addWeeklyEditorRow(x));$('#wWeek').onchange=()=>document.querySelectorAll('[data-week-row]').forEach(updateWeeklyPreviousMetric);$('#saveWeekly').onclick=saveWeeklyBatch;$('#addWeeklyRow').onclick=()=>addWeeklyEditorRow({plans:[{}]})}
 function weeklyPlanCopyKey(week,x,date=normDate(x.Plan_Date)){
- return [week,date,x.Sale_ID,x.Customer_Code,x.Product_Type,x.PART,x.SUB_PART,x.Group_Product_ID||x.Group_Product_Name||'',x.Plan_Type||'Spot'].join('|')
+ return [week,date,x.Sale_ID,x.Customer_Code,x.Product_Type,x.PART,x.SUB_PART,x.Group_Product_ID||x.Group_Product_Name||'',x.Item_Code||'',x.Plan_Type||'Spot'].join('|')
 }
 function cloneWeeklyPlanRow(source,week){
  const range=toWeekRange(week),d=new Date(`${normDate(source.Plan_Date)}T12:00:00Z`);
@@ -468,7 +469,7 @@ function groupUomOptions(type,part,sub,selected='',allowVariable=false,groupId='
  return html;
 }
 function categoryActualInPlanUom(group,date,uom){
- const matches=rows('actuals').filter(a=>String(a.Data_Status||'LIVE').toUpperCase()==='LIVE'&&a.Sale_ID===group.Sale_ID&&a.Customer_Code===group.Customer_Code&&normDate(a.Sales_Date)===date&&passesCommon(a,date)).filter(a=>{const i=rows('items').find(x=>String(x.Item_Code)===String(a.Item_Code))||{};return i.Product_Type===group.Product_Type&&i.PART===group.PART&&i.SUB_PART===group.SUB_PART&&(!group.Group_Product_ID||String(i.Group_Product_ID||'')===String(group.Group_Product_ID))});
+ const matches=rows('actuals').filter(a=>String(a.Data_Status||'LIVE').toUpperCase()==='LIVE'&&a.Sale_ID===group.Sale_ID&&a.Customer_Code===group.Customer_Code&&normDate(a.Sales_Date)===date&&passesCommon(a,date)).filter(a=>{const i=rows('items').find(x=>String(x.Item_Code)===String(a.Item_Code))||{};return i.Product_Type===group.Product_Type&&i.PART===group.PART&&i.SUB_PART===group.SUB_PART&&(!group.Group_Product_ID||String(i.Group_Product_ID||'')===String(group.Group_Product_ID))&&(!group.Item_Code||String(a.Item_Code)===String(group.Item_Code))});
  let qty=0,missing=0;
  for(const a of matches){const item=rows('items').find(x=>String(x.Item_Code)===String(a.Item_Code));if(!item){missing++;continue}
   if(String(a.UOM||'').trim().toUpperCase()===String(uom||'').trim().toUpperCase()&&a.Qty!==''&&a.Qty!=null){qty+=Number(a.Qty)||0;continue}
@@ -486,8 +487,8 @@ function weeklyPlanTable(list){
   const tables=units.map(uom=>{
    const plans=weekPlans.filter(p=>String(p.Plan_UOM||'KG')===String(uom)),groups=new Map();
    for(const p of plans){
-    const item=rows('items').find(i=>i.Item_Code===p.Item_Code)||{},type=p.Product_Type||item.Product_Type||'',part=p.PART||item.PART||'',sub=p.SUB_PART||item.SUB_PART||'',groupId=String(p.Group_Product_ID||item.Group_Product_ID||''),group=rows('groupProducts').find(g=>String(g.Group_Product_ID)===groupId),productLevel=groupId?(p.Group_Product_Name||group?.Group_Product_Name||groupId):sub,key=[p.Sale_ID,p.Customer_Code,type,part,sub,groupId,p.Plan_Type||'Spot',uom].join('|');
-    if(!groups.has(key))groups.set(key,{Sale_ID:p.Sale_ID,Customer_Code:p.Customer_Code,Product_Type:type,PART:part,SUB_PART:sub,Group_Product_ID:groupId,Product_Level:productLevel,Plan_Type:p.Plan_Type||'Spot',Plan_UOM:uom,plans:[]});
+    const item=rows('items').find(i=>i.Item_Code===p.Item_Code)||{},type=p.Product_Type||item.Product_Type||'',part=p.PART||item.PART||'',sub=p.SUB_PART||item.SUB_PART||'',groupId=String(p.Group_Product_ID||item.Group_Product_ID||''),group=rows('groupProducts').find(g=>String(g.Group_Product_ID)===groupId),productLevel=groupId?(p.Group_Product_Name||group?.Group_Product_Name||groupId):sub,key=[p.Sale_ID,p.Customer_Code,type,part,sub,groupId,p.Item_Code||'',p.Plan_Type||'Spot',uom].join('|');
+    if(!groups.has(key))groups.set(key,{Sale_ID:p.Sale_ID,Customer_Code:p.Customer_Code,Product_Type:type,PART:part,SUB_PART:sub,Group_Product_ID:groupId,Item_Code:p.Item_Code||'',Product_Level:productLevel,Plan_Type:p.Plan_Type||'Spot',Plan_UOM:uom,plans:[]});
     groups.get(key).plans.push(p)
    }
    let totalPlan=0,totalActual=0,totalMissing=0;
@@ -523,10 +524,11 @@ function buildWeeklyRecord(week,sale,e){
  const range=toWeekRange(week),legacyItem=rows('items').find(i=>i.Item_Code===e.Item_Code),type=e.Product_Type||legacyItem?.Product_Type,part=e.PART||legacyItem?.PART,sub=e.SUB_PART||legacyItem?.SUB_PART,group=weeklyGroupProduct(type,part,sub,e.Group_Product_Name||e.Group_Product_ID),customer=rows('customers').find(c=>c.Customer_Code===e.Customer_Code),saleId=e.Sale_ID||customer?.Assigned_Sale_ID||sale?.Sale_ID,saleRow=rows('sales').find(x=>x.Sale_ID===saleId),qty=Number(e.Plan_Qty),uom=String(e.Plan_UOM||'').trim(),dt=normDate(e.Plan_Date);
  if(!customer||!saleRow||!type||!part||!sub||!(qty>0)||!dt||!uom)throw Error('กรอกวันที่ ลูกค้า Sale กลุ่มสินค้า จำนวน Plan และหน่วยให้ครบ');
  if(dt<range.start||dt>range.end)throw Error(dt+' ไม่อยู่ในช่วง '+week);
- if(!groupPlanUomAvailable(type,part,sub,uom))throw Error('หน่วย '+uom+' ไม่มี Conversion ครบทุก Item ใน PART/SUB-PART ที่เลือก');
- if(legacyItem&&(legacyItem.Product_Type!==type||legacyItem.PART!==part||legacyItem.SUB_PART!==sub))throw Error('สินค้าเดิมไม่ตรงกับ Product Type / PART / SUB-PART');
- const factor=groupUomFactor(type,part,sub,uom),planKg=factor?qty*factor:'';
- return {Plan_ID:e.Plan_ID||id('WPLAN'),Week_Key:week,Week_Start:range.start,Week_End:range.end,Plan_Date:dt,Sale_ID:saleRow.Sale_ID,Customer_Code:customer.Customer_Code,Item_Code:'',Channel:customer.Channel||saleRow.Channel||saleRow.Team,Plan_Qty:qty,Plan_UOM:uom,KG_Per_UOM:factor||'',Plan_KG:planKg,Plan_MT:factor?planKg/1000:'',Version:Number(e.Version||1),Saved_By:me,Saved_At:new Date().toISOString(),Data_Status:'LIVE',Plan_Type:e.Plan_Type||'Spot',Contact_Completed:Number(e.Contact_Completed||0),Product_Type:type,PART:part,SUB_PART:sub,Group_Product_ID:group.Group_Product_ID,Group_Product_Name:group.Group_Product_Name,_row:Number(e._row||0)};
+ if(legacyItem&&(legacyItem.Product_Type!==type||legacyItem.PART!==part||legacyItem.SUB_PART!==sub||(e.Group_Product_ID&&String(legacyItem.Group_Product_ID||'')!==String(e.Group_Product_ID))))throw Error('สินค้าเดิมไม่ตรงกับ Product Type / PART / SUB-PART / GROUP PRODUCT');
+ if(legacyItem&&!itemPlanUomMeta(legacyItem.Item_Code).some(x=>x.key===uom.toUpperCase()))throw Error('หน่วย '+uom+' ไม่มี Conversion สำหรับ Item '+legacyItem.Item_Code);
+ if(!legacyItem&&!groupPlanUomAvailable(type,part,sub,uom,e.Group_Product_ID||''))throw Error('หน่วย '+uom+' ไม่มี Conversion ครบทุก Item ในกลุ่มที่เลือก');
+ const factor=legacyItem?itemFactorInUom(legacyItem,uom):groupUomFactor(type,part,sub,uom,e.Group_Product_ID||''),planKg=factor?qty*factor:'';
+ return {Plan_ID:e.Plan_ID||id('WPLAN'),Week_Key:week,Week_Start:range.start,Week_End:range.end,Plan_Date:dt,Sale_ID:saleRow.Sale_ID,Customer_Code:customer.Customer_Code,Item_Code:legacyItem?legacyItem.Item_Code:'',Channel:customer.Channel||saleRow.Channel||saleRow.Team,Plan_Qty:qty,Plan_UOM:uom,KG_Per_UOM:factor||'',Plan_KG:planKg,Plan_MT:factor?planKg/1000:'',Version:Number(e.Version||1),Saved_By:me,Saved_At:new Date().toISOString(),Data_Status:'LIVE',Plan_Type:e.Plan_Type||'Spot',Contact_Completed:Number(e.Contact_Completed||0),Product_Type:type,PART:part,SUB_PART:sub,Group_Product_ID:group.Group_Product_ID,Group_Product_Name:group.Group_Product_Name,_row:Number(e._row||0)};
 }
 function prepareWeeklyPlanImport(data,defaultWeek){
  if(!data.length)throw Error('ไฟล์ไม่มีรายการแผน');const ids=new Set(),out=[];
@@ -548,7 +550,7 @@ function weeklyCalendar(plans){
  let months=filterState.periodMode==='month'?(filterState.periods.length?filterState.periods:[...new Set(plans.map(p=>normDate(p.Plan_Date).slice(0,7)).filter(Boolean))]):[...new Set(plans.map(p=>normDate(p.Plan_Date).slice(0,7)).filter(Boolean))];if(!months.length)months=[localToday().slice(0,7)];
  return months.sort().map(month=>{const [y,m]=month.split('-').map(Number),start=new Date(y,m-1,1),off=(start.getDay()+6)%7,days=new Date(y,m,0).getDate(),cells=Array.from({length:off},()=>'<div class="calendar-cell blank"></div>');
   for(let d=1;d<=days;d++){const key=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0'),day=plans.filter(p=>normDate(p.Plan_Date)===key);
-   cells.push('<div class="calendar-cell"><b>'+d+'</b>'+day.map(p=>{const group={Sale_ID:p.Sale_ID,Customer_Code:p.Customer_Code,Product_Type:p.Product_Type,PART:p.PART,SUB_PART:p.SUB_PART},actual=categoryActualInPlanUom(group,key,p.Plan_UOM||'KG'),plan=Number(p.Plan_Qty||0),coverage=actual.missing?'—':plan?fmt(actual.qty/plan*100,1)+'%':'—';
+   cells.push('<div class="calendar-cell"><b>'+d+'</b>'+day.map(p=>{const group={Sale_ID:p.Sale_ID,Customer_Code:p.Customer_Code,Product_Type:p.Product_Type,PART:p.PART,SUB_PART:p.SUB_PART,Group_Product_ID:p.Group_Product_ID,Item_Code:p.Item_Code},actual=categoryActualInPlanUom(group,key,p.Plan_UOM||'KG'),plan=Number(p.Plan_Qty||0),coverage=actual.missing?'—':plan?fmt(actual.qty/plan*100,1)+'%':'—';
     return '<div class="calendar-entry"><button class="calendar-event" data-week-edit="'+esc(p.Plan_ID)+'">'+esc(rows('customers').find(c=>c.Customer_Code===p.Customer_Code)?.Customer_Name||p.Customer_Code)+' · '+esc([p.Product_Type,p.PART,p.SUB_PART].filter(Boolean).join('/'))+' · '+esc(p.Plan_Type==='Contact'?'Contact':'Spot')+' · Plan '+fmt(plan,3)+' '+esc(p.Plan_UOM||'')+' · Actual '+(actual.missing?'ตรวจ Conversion':fmt(actual.qty,3)+' '+esc(p.Plan_UOM||''))+' · '+coverage+'</button><button class="calendar-remove" data-week-del="'+esc(p.Plan_ID)+'" aria-label="ลบแผน">×</button></div>';
    }).join('')+'</div>')
   }
