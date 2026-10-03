@@ -377,3 +377,25 @@ function splitModalV2(team,teams,splits){
  if(team){$('#spType').value=gg.Product_Type;fillParts();$('#spPart').value=gg.PART;fillSubs();$('#spSub').value=gg.SUB_PART;$('#spLevel').value=targetLevel(team);fillTargetGroupSelect('sp',team)}else fillParts();fillSale();
  $('#saveSplit').onclick=async()=>{try{const level=$('#spLevel').value,gp=level==='GROUP_PRODUCT'?targetGroupRows().find(g=>g.Group_Product_ID===$('#spGroup').value):null,identity={Target_Level:level,Group_Product_ID:gp?.Group_Product_ID||'',Group_Product_Name:gp?.Group_Product_Name||'',Product_Type:$('#spType').value,PART:$('#spPart').value,SUB_PART:$('#spSub').value},t=team||teams.find(x=>+x.Year===+$('#spY').value&&+x.Month===+$('#spM').value&&x.Channel===$('#spC').value&&targetScopeKey(x)===targetScopeKey(identity)),sale=rows('sales').find(s=>s.Sale_ID===$('#spSale').value),qty=+$('#spQ').value;if(level==='GROUP_PRODUCT'&&!gp)throw Error('เลือก Group Product');if(!t)throw Error('ไม่พบเป้าทีมในระดับสินค้านี้ กรุณาบันทึกเป้าทีมก่อน');if(!sale||String(sale.Channel||sale.Team)!==String(t.Channel))throw Error('Sale ต้องอยู่ใน Channel/Team เดียวกับเป้าทีม');const used=allocationsForTeam(t).reduce((n,x)=>n+Number(x.Target_MT||0),0);if(!(qty>0)||used+qty>Number(t.Plan_MT)+.0001)throw Error('ยอดแบ่งเกินเป้าทีม: คงเหลือ '+fmt(Number(t.Plan_MT)-used)+' MT');const o={Target_ID:id('SPLIT'),Year:+$('#spY').value,Month:+$('#spM').value,Channel:t.Channel,Item_Code:'',Product_Type:identity.Product_Type,PART:identity.PART,SUB_PART:identity.SUB_PART,Target_Level:level,Group_Product_ID:identity.Group_Product_ID,Group_Product_Name:identity.Group_Product_Name,Target_MT:qty,Status:'DRAFT',External_Target_Sheet:'',Data_Status:'LIVE',Updated_By:me,Sale_ID:sale.Sale_ID,Plan_Qty:qty,Plan_UOM:'MT',KG_Per_UOM:1000,Plan_KG:qty*1000,Target_KG:qty*1000,Quota_UOM:'MT',Updated_At:new Date().toISOString()};await append(TAB.targets,[o]);closeModal();ping('แบ่งเป้าหมายราย Sale แล้ว');await loadDb()}catch(e){ping(e.message,true)}}
 }
+
+/* Click a plain table heading to sort that column; click again to reverse order. */
+document.addEventListener('click',function(e){
+ const th=e.target.closest('thead th');if(!th||e.target.closest('button, a, input, select'))return;
+ const table=th.closest('table'),head=table?.tHead;if(!table||!head)return;
+ const hr=head.rows[head.rows.length-1];if(!hr||[...hr.cells].some(c=>c.colSpan>1||c.rowSpan>1))return;
+ const idx=[...hr.cells].indexOf(th);if(idx<0)return;
+ const body=table.tBodies[0];if(!body)return;
+ const dir=table.dataset.sortIndex===String(idx)&&table.dataset.sortDir==='asc'?'desc':'asc';
+ table.dataset.sortIndex=String(idx);table.dataset.sortDir=dir;
+ const rows=[...body.rows].map((row,n)=>({row,n,value:(row.cells[idx]?.innerText||'').trim()}));
+ const numeric=rows.filter(x=>x.value).every(x=>/^[+-]?[\\d,.%\\s]+(?:MT|KG)?$/i.test(x.value));
+ rows.sort((a,b)=>{
+  let c;
+  if(numeric){const n=x=>Number(x.value.replace(/,/g,'').replace(/%|MT|KG/gi,'').trim())||0;c=n(a)-n(b)}
+  else c=a.value.localeCompare(b.value,undefined,{numeric:true,sensitivity:'base'});
+  return (dir==='asc'?c:-c)||a.n-b.n;
+ });
+ rows.forEach(x=>body.appendChild(x.row));
+ [...hr.cells].forEach(c=>{c.removeAttribute('aria-sort');c.classList.remove('sorted-col')});
+ th.setAttribute('aria-sort',dir==='asc'?'ascending':'descending');th.classList.add('sorted-col');
+});
