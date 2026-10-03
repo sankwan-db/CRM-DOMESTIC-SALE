@@ -159,7 +159,7 @@ const selfCheck=runStaticSelfChecks();if(selfCheck.bad.length)console.error('CRM
 drawNav();go('dashboard');
 
 
-function masterFieldInput(key,existing={}){
+function masterFieldInputBase(key,existing={}){
  const value=existing[key]??'';
  if(mtab==='itemUoms'&&key==='Item_Code'){const items=active(rows('items'));return '<select data-master-key="Item_Code"><option value="">เลือก Item Code</option>'+items.map(i=>'<option value="'+esc(i.Item_Code)+'" '+(String(value)===String(i.Item_Code)?'selected':'')+'>'+esc(i.Item_Code)+' · '+esc(i.Item_Name||'')+' · PART '+esc(i.PART||'')+'</option>').join('')+'</select><small>เลือกจาก M_ITEM; ระบบเชื่อมด้วย Item_Code</small>'}
  if(mtab==='items'&&key==='Group_Product_ID'){const gs=active(rows('groupProducts'));return '<select data-master-key="Group_Product_ID"><option value="">ไม่ระบุกลุ่ม Product</option>'+gs.map(g=>'<option value="'+esc(g.Group_Product_ID)+'" '+(String(value)===String(g.Group_Product_ID)?'selected':'')+'>'+esc(g.Group_Product_Name)+' ('+esc(g.Group_Product_ID)+')</option>').join('')+'</select><small>หลาย Item Code เลือก Group Product เดียวกันได้</small>'}
@@ -399,3 +399,13 @@ document.addEventListener('click',function(e){
  [...hr.cells].forEach(c=>{c.removeAttribute('aria-sort');c.classList.remove('sorted-col')});
  th.setAttribute('aria-sort',dir==='asc'?'ascending':'descending');th.classList.add('sorted-col');
 });
+
+function masterFieldInput(key,existing={}){
+ if(mtab==='customers'&&['Customer_Segment','Route','Customer_Status','Assigned_Sale_ID','Channel'].includes(key)){
+  const current=String(existing[key]??''),source=key==='Assigned_Sale_ID'?active(rows('sales')):key==='Channel'?active(rows('channels')):rows('customers'),values=key==='Assigned_Sale_ID'?source.map(x=>[x.Sale_ID,(x.Sale_Name||x.Sale_ID)+' · '+x.Sale_ID]):key==='Channel'?source.map(x=>[x.Channel_Code,x.Channel_Name||x.Channel_Code]):[...new Set(source.map(x=>String(x[key]||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'th')).map(x=>[x,x]);
+  if(current&&!values.some(x=>String(x[0])===current))values.unshift([current,current]);
+  const label=key.replace(/_/g,' ');
+  return '<select data-master-key="'+esc(key)+'"><option value="">เลือก '+esc(label)+'</option>'+values.map(([v,l])=>'<option value="'+esc(v)+'" '+(String(v)===current?'selected':'')+'>'+esc(l)+'</option>').join('')+'</select>';
+ }
+ return masterFieldInputBase(key,existing);
+}
