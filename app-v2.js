@@ -423,7 +423,7 @@ function crmUpdateTablePagination(table){
  const rows=[...body.rows],wrap=table.closest('.tablewrap');
  if(rows.length<=10){rows.forEach(r=>r.hidden=false);wrap.parentElement?.querySelector('[data-table-pager="'+table.id+'"]')?.remove();return}
  if(!table.id)table.id='crm-data-table-'+(++crmTablePageId);
- const size=Math.max(1,Number(table.dataset.pageSize||10)),pages=Math.max(1,Math.ceil(rows.length/size));
+ const size=table.dataset.pageSize==='all'?rows.length:Math.max(1,Number(table.dataset.pageSize||10)),pages=Math.max(1,Math.ceil(rows.length/size));
  const page=Math.min(Math.max(1,Number(table.dataset.page||1)),pages);table.dataset.page=String(page);
  rows.forEach((r,i)=>r.hidden=i<(page-1)*size||i>=page*size);
  let bar=wrap.parentElement?.querySelector('[data-table-pager="'+table.id+'"]');
@@ -434,5 +434,5 @@ function crmUpdateTablePagination(table){
 }
 function crmScanTablePagination(){document.querySelectorAll('.tablewrap table').forEach(crmUpdateTablePagination)}
 document.addEventListener('click',function(e){const b=e.target.closest('[data-crm-page]');if(!b)return;const bar=b.closest('[data-table-pager]'),table=bar&&document.getElementById(bar.dataset.tablePager);if(!table)return;table.dataset.page=String(Math.max(1,Number(table.dataset.page||1)+Number(b.dataset.crmPage)));crmUpdateTablePagination(table)});
-document.addEventListener('change',function(e){if(!e.target.matches('[data-crm-size]'))return;const bar=e.target.closest('[data-table-pager]'),table=bar&&document.getElementById(bar.dataset.tablePager);if(!table)return;table.dataset.pageSize=e.target.value==='all'?String(table.tBodies[0]?.rows.length||10):e.target.value;table.dataset.page='1';crmUpdateTablePagination(table)});
+document.addEventListener('change',function(e){if(!e.target.matches('[data-crm-size]'))return;const bar=e.target.closest('[data-table-pager]'),table=bar&&document.getElementById(bar.dataset.tablePager);if(!table)return;table.dataset.pageSize=e.target.value;table.dataset.page='1';crmUpdateTablePagination(table)});
 const crmAppRoot=document.querySelector('#app');if(crmAppRoot&&window.MutationObserver){let queued=false;new MutationObserver(()=>{if(queued)return;queued=true;setTimeout(()=>{queued=false;crmScanTablePagination()},0)}).observe(crmAppRoot,{childList:true,subtree:true});setTimeout(crmScanTablePagination,0)}
