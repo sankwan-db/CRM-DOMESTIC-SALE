@@ -428,7 +428,7 @@ function crmUpdateTablePagination(table){
  rows.forEach((r,i)=>r.hidden=i<(page-1)*size||i>=page*size);
  let bar=wrap.parentElement?.querySelector('[data-table-pager="'+table.id+'"]');
  if(!bar){bar=document.createElement('div');bar.className='table-pagination';bar.dataset.tablePager=table.id;bar.innerHTML='<button type="button" class="btn small" data-crm-page="-1">ก่อนหน้า</button><span class="pager-status"></span><label>แสดง <select data-crm-size><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="all">ทั้งหมด</option></select> แถว</label><button type="button" class="btn small" data-crm-page="1">ถัดไป</button>';wrap.parentElement.insertBefore(bar,wrap)}
- const status=bar.querySelector('.pager-status');if(status)status.textContent=page+'/'+pages+' · '+((page-1)*size+1)+'–'+Math.min(page*size,rows.length)+' จาก '+rows.length+' รายการ';
+ const status=bar.querySelector('.pager-status'),statusText=page+'/'+pages+' · '+((page-1)*size+1)+'–'+Math.min(page*size,rows.length)+' จาก '+rows.length+' รายการ';if(status&&status.textContent!==statusText)status.textContent=statusText;
  const select=bar.querySelector('[data-crm-size]');if(select)select.value=table.dataset.pageSize||'10';
  const buttons=bar.querySelectorAll('[data-crm-page]');if(buttons.length===2){buttons[0].disabled=page<=1;buttons[1].disabled=page>=pages}
 }
