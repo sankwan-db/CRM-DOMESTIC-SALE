@@ -353,7 +353,7 @@ function syncWeeklyMatrixFreeze(){
   table.style.setProperty('--wf-head-4',(h1+h2+h3)+'px');
   table.style.setProperty('--wf-contact-top',(h1+h2+h3+forecast)+'px');
   let left=0;const identityCells=[...head[0].cells].slice(0,4);
-  identityCells.forEach((cell,index)=>{table.style.setProperty('--wf-left-'+(index+1),left+'px');left+=cell.getBoundingClientRect().width});
+  identityCells.forEach((cell,index)=>{table.style.setProperty('--wf-left-'+(index+1),left+'px');left+=cell.getBoundingClientRect().width});table.style.setProperty('--wf-identity-width',left+'px');
  }
 }
 if(!window.weeklyFreezeResizeBound){window.weeklyFreezeResizeBound=true;window.addEventListener('resize',()=>requestAnimationFrame(syncWeeklyMatrixFreeze))}
