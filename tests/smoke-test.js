@@ -96,6 +96,8 @@ assert.equal(api.channelUniqueRows().length,1,'Channel master list removes dupli
 assert.equal(api.targetActualQty(team),2.5,'Monthly team target shows matched imported Actual in MT');
 assert.equal(api.targetActualQty(ctx.db.targets[0],'S1'),2.5,'Sale target Actual matches month, channel, product and Sale');
 assert.equal(api.targetActualTotal([team,team]),2.5,'Actual rows are not double-counted when scopes overlap');
+const performanceActuals=Array.from({length:12000},(_,i)=>({Actual_ID:'PERF-'+i,Sales_Date:'2026-10-03',Channel:'MKT',Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Qty_MT:0.001,Data_Status:'LIVE'}));
+assert.equal(Number(api.targetActualTotal([team],performanceActuals).toFixed(3)),12,'Indexed Actual matching handles larger report batches');
 assert.ok(api.teamTargetTable([team]).includes('ยอดขาย Actual (MT)'),'Team target table includes imported Actual');
 assert.ok(api.splitTable(ctx.db.targets).includes('% Sales เทียบเป้า'),'Individual monthly target table includes Actual achievement');
 assert.ok(api.targetCoverage([team],ctx.db.targets,ctx.db.actuals).includes('2.50 MT'),'Target hierarchy displays Actual against team target');
