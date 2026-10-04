@@ -6,7 +6,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const app = fs.readFileSync(path.join(root, 'app-v2.js'), 'utf8');
-assert.match(html, /app-v2\.js\?v=plan-uom-item-20261002/, 'GitHub Pages loads the updated Plan UOM conversion logic');
+assert.match(html, /app-v2\\.js\\?v=weekly-plan-fix-20261004-03/, 'GitHub Pages cache key is refreshed for weekly plan fixes');
 assert.doesNotMatch(html, /M_PRODUCT_GROUP:'G'/, 'Google Sheets loader does not request unused M_PRODUCT_GROUP');
 assert.match(html, /T_WEEKLY_CUSTOMER_PLAN:'Y'/, 'Google Sheets loader reads Group Product fields on weekly plans');
 assert.match(app, /HEAD\[TAB\.weeklyPlans\]=\[\.\.\.HEAD\[TAB\.weeklyPlans\],'Plan_Type','Contact_Completed','Product_Type','PART','SUB_PART'/, 'Weekly plans persist at Product Type/PART/SUB-PART grain');
@@ -58,7 +58,7 @@ ctx.db = {
   targets: [{Target_ID:'A1',Year:2026,Month:10,Channel:'Market',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Sale_ID:'S1',Target_MT:10,Data_Status:'LIVE'}]
 };
 let source = app.replace(/drawNav\(\);go\('dashboard'\);/g, '');
-source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,weeklyPlanTable,categoryActualInPlanUom,contactAcceptancePct,actionRowV2,actionCard,calendarMonth,groupUomOptions,customerLovOptionsForGroup,priorWeeklyMetrics,prepareWeeklyPlanImport};';
+source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,weeklyPlanTable,passesWeeklyPlanFilters,categoryActualInPlanUom,contactAcceptancePct,actionRowV2,actionCard,calendarMonth,groupUomOptions,customerLovOptionsForGroup,priorWeeklyMetrics,prepareWeeklyPlanImport};';
 vm.runInNewContext(source, ctx, {filename:'app-v2.js'});
 const api = ctx.crmTestApi;
 assert.equal(api.selfCheck.bad.length, 0, 'built-in date/UOM checks pass');
@@ -95,8 +95,12 @@ assert.equal(weeklySet.length,2,'one coordinator batch can contain plans for mul
 assert.deepEqual(weeklySet.map(x=>x.Sale_ID),['S1','S2'],'weekly Sale defaults independently from each Customer Master row');
 ctx.db.actuals=[{Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Sales_Date:'2026-09-30',Qty_MT:.5,Data_Status:'LIVE'}];
 const weeklyMatrix=api.weeklyPlanTable([weekly]);
-for(const text of ['28/09/2026','30/09/2026','<th>Plan</th><th>Actual</th>'])assert.ok(weeklyMatrix.includes(text),`weekly matrix includes ${text}`);
-assert.match(weeklyMatrix,/50\.0%/,'Contract acceptance is calculated from imported Actual vs Plan');
+for(const text of ['28/09/2026','30/09/2026','<th class="plan-head">Plan</th><th class="actual-head">Actual</th>','Contact Plan','Spot Plan','weekly-total-actual'])assert.ok(weeklyMatrix.includes(text),`weekly matrix includes ${text}`);
+assert.match(weeklyMatrix,/50\.0%/,'Coverage is calculated from imported Actual vs Plan');
+ctx.filterState.periodMode='month';ctx.filterState.years=['2026'];ctx.filterState.periods=['2026-10'];
+const savedW39={Week_Key:'W39/2026',Plan_Date:'22/9/2026',Data_Status:'',Sale_ID:'SALE-001',Customer_Code:'100003',Channel:'DMS',Product_Type:'VALUE ADD',PART:'PAWS',SUB_PART:'PAWS (A)',Group_Product_ID:'GRP-035'};
+assert.equal(api.passesWeeklyPlanFilters(savedW39),true,'A selected weekly Plan is not hidden by an unrelated global month period filter');
+assert.equal(String(savedW39.Week_Key).trim(),'W39/2026','Saved Sheet week key matches the selected week');
 ctx.db.weeklyPlans=[{Week_Key:'W40/2026',Sale_ID:'S1',Customer_Code:'C1',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Plan_Qty:2,Plan_UOM:'BOX',Data_Status:'LIVE'}];
 ctx.db.actuals=[{Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Sales_Date:'2026-09-30',Qty_KG:500,Qty_MT:.5,Data_Status:'LIVE'}];
 assert.deepEqual(JSON.parse(JSON.stringify(api.priorWeeklyMetrics('W41/2026','S1','C1','Special','Leg','DMS','BOX'))),{week:'W40/2026',planQty:2,actualQty:1,missing:0,uom:'BOX'},'Next-week plan carries prior Plan and item-converted Actual in selected Plan UOM');
