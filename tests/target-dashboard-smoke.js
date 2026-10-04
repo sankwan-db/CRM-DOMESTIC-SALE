@@ -127,6 +127,34 @@ assert.match(app, /Contact_Order_Qty','Contact_Order_Date/, 'weekly plan Excel i
 assert.match(app, /target-metric[\s\S]*target-percent/, 'target hierarchy separates numeric weight values from percentage cells');
 assert.match(html, /target-metric\{text-align:right!important[\s\S]*target-percent\{text-align:center!important/, 'target table amounts align right and percentage cells center');
 assert.match(app, /weekly-contact-total/, 'weekly matrix keeps a distinct Contact Total row');
-assert.match(html, /weekly-contact-total>th:first-child[^]*left:0[^]*wf-identity-width/, 'Contact Total label stays aligned with the frozen identity columns through Sale');
+assert.match(html, /weekly-contact-total>\*\{position:static!important;left:auto!important;top:auto!important;z-index:auto!important\}/, 'optional weekly matrix has no frozen identity/summary columns');
+assert.match(html, /grid-template-columns:minmax\(285px,2fr\) repeat\(4,minmax\(125px,\.95fr\)\) repeat\(2,minmax\(105px,\.8fr\)\) minmax\(250px,1\.8fr\)/, 'team target hierarchy explicitly allocates eight columns including management actions');
+assert.match(app, /data-week-subview=\"daily\"[\s\S]*data-week-subview=\"summary\"[\s\S]*data-week-subview=\"matrix\"[\s\S]*data-week-subview=\"orders\"/, 'weekly page provides vertical, product summary, matrix, and Contact order tabs');
+assert.match(app, /function weeklyDailyPlanTable\([\s\S]*วันที่ \/ วัน[\s\S]*ประมาณการณ์ผลิต[\s\S]*Actual \(หน่วย Plan\)[\s\S]*weeklyDailyPrev/, 'vertical weekly list shows daily forecast, planned-unit Actual and pagination');
+assert.match(app, /function weeklyProductSummaryTable\([\s\S]*Plan Contact \(MT\)[\s\S]*Plan Spot \(MT\)[\s\S]*ประมาณการณ์ผลิต \(MT\)[\s\S]*Actual \(MT\)/, 'product summary compares Contact/Spot plans, forecast, and actual');
+assert.match(html, /#app \.weekly-matrix tbody td[^]*position:static!important/, 'weekly matrix cells are not sticky');
+
+// Weekly product summary uses one product-level row and rolls Item actuals to the configured Plan level.
+const weeklyCoreStart = app.indexOf('function weeklyPlanToMt(');
+const weeklyCoreEnd = app.indexOf('function weeklyPlanTable(', weeklyCoreStart);
+const summaryPlans = [
+  {Plan_ID:'W1',Week_Key:'W41/2026',Plan_Date:'2026-10-05',Customer_Code:'C1',Sale_ID:'S1',Product_Type:'TYPE',PART:'PART',SUB_PART:'SUB',Plan_Type:'Contact',Plan_Qty:2,Plan_UOM:'MT',Plan_MT:2,KG_Per_UOM:1000},
+  {Plan_ID:'W2',Week_Key:'W41/2026',Plan_Date:'2026-10-06',Customer_Code:'C1',Sale_ID:'S1',Product_Type:'TYPE',PART:'PART',SUB_PART:'SUB',Plan_Type:'Spot',Plan_Qty:500,Plan_UOM:'KG',Plan_KG:500,KG_Per_UOM:1}
+];
+const summaryCtx={
+  rows:name=>({weeklyPlans:summaryPlans,items:[{Item_Code:'I1',Item_Name:'Item one',Product_Type:'TYPE',PART:'PART',SUB_PART:'SUB',Group_Product_ID:'G1'}],groupProducts:[{Group_Product_ID:'G1',Group_Product_Name:'Group one'}],customers:[{Customer_Code:'C1',Customer_Name:'Customer one'}],sales:[{Sale_ID:'S1',Sale_Name:'Sale one'}],dailyProductionForecast:[{Data_Status:'LIVE',Forecast_Date:'2026-10-05',Product_Type:'TYPE',PART:'PART',SUB_PART:'SUB',Forecast_MT:4}],actuals:[{Data_Status:'LIVE',Sales_Date:'2026-10-05',Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Plan_Type:'Contact',Qty_MT:1}]}[name]||[]),
+  active:x=>x, weeklyPlanDateKey:x=>String(x||'').slice(0,10),toWeekRange:()=>({start:'2026-10-05',end:'2026-10-11'}),normalizeWeeklyPlanType:x=>String(x||''),
+  weeklyActualPlanTypeMatch:()=>true,weeklyActualFilterRow:(a,s)=>({...a,Sale_ID:s}),actualSaleKey:a=>a.Sale_ID||'',passesWeeklyPlanFilters:()=>true,actualQtyMT:a=>Number(a.Qty_MT||0),
+  groupUomFactor:()=>1000,itemFactorInUom:()=>1000,fmt:(x,d=2)=>Number(x||0).toFixed(d),esc:x=>String(x??''),
+  weeklySummarySearch:'',weeklySummaryPage:1,filterState:{},
+};
+vm.runInNewContext(app.slice(weeklyCoreStart,weeklyCoreEnd)+'\nthis.makeSummary=weeklyProductSummaryRows;this.planMt=weeklyPlanToMt;',summaryCtx);
+const productSummary=summaryCtx.makeSummary('W41/2026',summaryPlans);
+assert.equal(productSummary.length,1,'weekly summary is grouped at the selected SUB-PART plan level');
+assert.equal(productSummary[0].contactPlanMt,2,'Contact plan is converted to MT');
+assert.equal(productSummary[0].spotPlanMt,.5,'Spot plan is converted from KG to MT');
+assert.equal(productSummary[0].forecastMt,4,'production forecast is rolled up by product and date');
+assert.equal(productSummary[0].actualMt,1,'Actual is rolled from Item to the matching SUB-PART Plan');
+assert.equal(productSummary[0].coverage,40,'coverage uses Actual divided by total Plan');
 
 console.log('Target/dashboard smoke checks passed: date validation, scoped filters, searchable production picker, monthly product filters, named Channel display, target hierarchy, detail popup, and expand/collapse.');
