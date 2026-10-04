@@ -444,6 +444,13 @@ body.modal-open{overflow:hidden}
 #app .weekly-matrix .weekly-total-plan,#app .weekly-matrix .weekly-total-actual{position:static!important;left:auto!important;right:auto!important;z-index:auto!important}
 #app .weekly-matrix th,#app .weekly-matrix thead th{text-align:center!important}
 #app .weekly-matrix thead th.weekly-category-head{text-align:left!important}
+/* Target hierarchy: numeric weight values right aligned; percentages centered. */
+#app .target-hierarchy .hierarchy-row{grid-template-columns:minmax(320px,2.4fr) repeat(4,minmax(125px,1fr)) repeat(2,minmax(105px,.8fr));align-items:center}
+#app .target-hierarchy .hierarchy-row>span.target-metric{text-align:right!important;font-variant-numeric:tabular-nums;white-space:nowrap}
+#app .target-hierarchy .hierarchy-row>span.target-percent{text-align:center!important;display:flex;justify-content:center;align-items:center}
+#app .target-hierarchy .hierarchy-head>span{text-align:center}
+#app .target-hierarchy .hierarchy-head>span:first-child{text-align:left}
+#app .target-hierarchy .hierarchy-name{text-align:left;min-width:0}
 /* Weekly matrix: keep all textual row labels consistently left aligned. */
 #app .weekly-matrix tbody tr:not(.weekly-type-group):not(.weekly-summary-row):not(.weekly-forecast-row)>td:nth-child(-n+4){text-align:left!important}
 #app .weekly-matrix tbody tr.weekly-summary-row>th:first-child,
@@ -522,4 +529,4 @@ function setupPage(){return pageHead('ตั้งค่าการเชื่
 function render(){if(!$('#app'))return;if(!token){$('#app').innerHTML=page==='setup'?setupPage():pageHead('CRM Domestic Sale','เชื่อมต่อบัญชี Google ที่มีสิทธิ์แก้ไข Google Sheet เพื่อเริ่มใช้งาน')+`<div class="card"><div class="empty">ระบบเก็บข้อมูลบน Google Sheet ของคุณ<br>กดปุ่มเชื่อมต่อที่มุมขวาบน แล้วเลือกบัญชี Gmail ที่ได้รับสิทธิ์ Editor</div></div>`;return}if(page==='dashboard')$('#app').innerHTML=dashboard();if(page==='targets')$('#app').innerHTML=targetsPage();if(page==='import')$('#app').innerHTML=importPage();if(page==='actions')$('#app').innerHTML=actionPage();if(page==='master')$('#app').innerHTML=masterPage();bindFilters();$('#app').querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>{targetTab=+b.dataset.tt;render();drawTargets()});if(page==='targets'){drawTargets();$('#tshow').onclick=drawTargets;['tyear','tmonth','tchannel'].forEach(x=>$('#'+x).onchange=drawTargets)}if(page==='actions'){$('#newAction').onclick=()=>actionForm();$('#app').querySelectorAll('[data-at]').forEach(b=>b.onclick=()=>{actTab=b.dataset.at;render()});drawActions()}if(page==='import'){ $('#previewImport').onclick=previewImport;$('#downloadImportTemplate').onclick=()=>downloadTemplate();$('#exportActual').onclick=()=>exportRows(rows('actuals'),'T_SALES_ACTUAL')}if(page==='master'){$('#app').querySelectorAll('[data-mtab]').forEach(b=>b.onclick=()=>{mtab=b.dataset.mtab;render();drawMaster()});drawMaster()}$('#exportDashboard')?.addEventListener('click',()=>exportRows(currentFiltered(),'Dashboard_Actual'))}
 function downloadTemplate(){let wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([['Sales_Date','Item_Code','Customer_Code','Qty','UOM'],[today(),'ITEM-001','CUST-001',1000,'KG']]);XLSX.utils.book_append_sheet(wb,ws,'Sales Import');XLSX.writeFile(wb,'CRM_Domestic_Sales_Import_Template.xlsx')}
 drawNav();go('dashboard');
-</script><script src="app-v2.js?v=crm-column-alignment-20261004-11"></script></body>
+</script><script src="app-v2.js?v=crm-column-alignment-20261004-12"></script></body></html>
