@@ -120,6 +120,8 @@ assert.equal(actualCtx.weekActual({...typeGroup,Item_Code:'I1'},'2026-10-05','KG
 assert.equal(actualCtx.weekActual({...typeGroup,Plan_Type:'Spot',Item_Code:'I1'},'2026-10-05','KG').qty,7,'Spot weekly Actual totals only Spot-classified sales');
 assert.match(app, /data-week-subview="orders"[\s\S]*บันทึก Order Contact/, 'weekly plan menu has a separate Contact order-entry view');
 assert.match(app, /function contactOrderTable\(week\)[\s\S]*contactOrderCustomer[\s\S]*data-contact-order-qty[\s\S]*data-contact-order-date/, 'Contact order entry selects week/customer and lists planned daily rows');
+assert.match(app, /unitTotals=\[\.\.\.new Set\(shown\.map\(x=>String\(x\.Plan_UOM/, 'Contact order summary groups quantities by UOM instead of adding incompatible units');
+assert.match(app, /coverageTotal=unitTotals\.map\(x=>x\.uom\+.*x\.order\/x\.plan/, 'Contact order coverage is calculated separately for each UOM');
 assert.match(app, /function saveContactOrders\(\)[\s\S]*Contact_Order_Qty:qtyText[\s\S]*Contact_Completed:qtyText\?1:0/, 'Contact order quantities and completion are saved as their own milestone');
 assert.match(app, /Contact_Order_Qty','Contact_Order_Date/, 'weekly plan Excel includes Contact order receipt fields');
 assert.match(app, /target-metric[\s\S]*target-percent/, 'target hierarchy separates numeric weight values from percentage cells');
