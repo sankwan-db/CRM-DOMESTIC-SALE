@@ -145,7 +145,7 @@ const summaryCtx={
   rows:name=>({weeklyPlans:summaryPlans,items:[{Item_Code:'I1',Item_Name:'Item one',Product_Type:'TYPE',PART:'PART',SUB_PART:'SUB',Group_Product_ID:'G1'}],groupProducts:[{Group_Product_ID:'G1',Group_Product_Name:'Group one'}],customers:[{Customer_Code:'C1',Customer_Name:'Customer one'}],sales:[{Sale_ID:'S1',Sale_Name:'Sale one'}],dailyProductionForecast:[{Data_Status:'LIVE',Forecast_Date:'2026-10-05',Product_Type:'TYPE',PART:'PART',SUB_PART:'SUB',Forecast_MT:4}],actuals:[{Data_Status:'LIVE',Sales_Date:'2026-10-05',Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Plan_Type:'Contact',Qty_MT:1}]}[name]||[]),
   active:x=>x, weeklyPlanDateKey:x=>String(x||'').slice(0,10),toWeekRange:()=>({start:'2026-10-05',end:'2026-10-11'}),normalizeWeeklyPlanType:x=>String(x||''),
   weeklyActualPlanTypeMatch:()=>true,weeklyActualFilterRow:(a,s)=>({...a,Sale_ID:s}),actualSaleKey:a=>a.Sale_ID||'',passesWeeklyPlanFilters:()=>true,actualQtyMT:a=>Number(a.Qty_MT||0),
-  groupUomFactor:()=>1000,itemFactorInUom:()=>1000,fmt:(x,d=2)=>Number(x||0).toFixed(d),esc:x=>String(x??''),
+  groupUomFactor:()=>1000,itemFactorInUom:()=>1000,contactOrderEntriesForPlan:()=>[],fmt:(x,d=2)=>Number(x||0).toFixed(d),esc:x=>String(x??''),
   weeklySummarySearch:'',weeklySummaryPage:1,filterState:{},
 };
 vm.runInNewContext(app.slice(weeklyCoreStart,weeklyCoreEnd)+'\nthis.makeSummary=weeklyProductSummaryRows;this.planMt=weeklyPlanToMt;',summaryCtx);
@@ -156,5 +156,20 @@ assert.equal(productSummary[0].spotPlanMt,.5,'Spot plan is converted from KG to 
 assert.equal(productSummary[0].forecastMt,4,'production forecast is rolled up by product and date');
 assert.equal(productSummary[0].actualMt,1,'Actual is rolled from Item to the matching SUB-PART Plan');
 assert.equal(productSummary[0].coverage,40,'coverage uses Actual divided by total Plan');
+
+// Contact order entry defaults receipt date from Plan and supports multiple editable receipt events.
+assert.match(app,/TAB\.contactOrders='T_CONTACT_ORDER'[\s\S]*HEAD\[TAB\.contactOrders\]=\['Order_ID','Plan_ID'[\s\S]*Order_Date[\s\S]*Order_Qty/,'multi-date Contact orders have a dedicated Sheet schema');
+assert.match(app,/function contactOrderEntryRow\([\s\S]*Order_Date\?weeklyPlanDateKey\(entry\.Order_Date\):extra\?'':d[\s\S]*data-contact-order-date[\s\S]*data-contact-order-add/,'planned queue date initializes editable receipt date and add-order action exists');
+assert.match(app,/tabs=\[\.\.\.Object\.keys\(schema\),TAB\.customers,TAB\.prospects,TAB\.actions,TAB\.contactOrders\]/,'new contact-order ledger sheet is created automatically when missing');
+assert.match(app,/function saveContactOrders\([\s\S]*Order_Type:extra\?'EXTRA':'PLAN'[\s\S]*orderAdds\.push\(updated\)/,'receipt dates and extra order quantities are stored separately from the Plan');
+const entryStart=app.indexOf('function contactOrderEntriesForPlan(');
+const entryEnd=app.indexOf('function contactOrderEntryRow(',entryStart);
+const entryCtx={weeklyRemovedOrderIds:[],rows:n=>n==='contactOrders'?entryCtx.orders:[],weeklyPlanDateKey:x=>String(x||'').slice(0,10),orders:[]};
+vm.runInNewContext(app.slice(entryStart,entryEnd)+'\nthis.getEntries=contactOrderEntriesForPlan;',entryCtx);
+const planRow={Plan_ID:'P1',Week_Key:'W41/2026',Plan_Date:'2026-10-05',Plan_UOM:'KG',Contact_Order_Qty:'',Contact_Order_Date:''};
+assert.equal(entryCtx.getEntries(planRow)[0].Order_Date,'2026-10-05','first receipt date is seeded from the Plan date');
+const orderRowStart=app.indexOf('function contactOrderEntryRow(');const orderRowEnd=app.indexOf('function contactOrderTable(',orderRowStart);const orderRowCtx={rows:n=>n==='groupProducts'?[]:n==='sales'?[{Sale_ID:'S1',Sale_Name:'Sale one'}]:[],weeklyPlanDateKey:x=>String(x||'').slice(0,10),esc:x=>String(x??''),fmt:x=>String(x||0)};vm.runInNewContext(app.slice(orderRowStart,orderRowEnd)+'\nthis.drawOrderRow=contactOrderEntryRow;',orderRowCtx);const seededRow=orderRowCtx.drawOrderRow({...planRow,Sale_ID:'S1',Plan_Qty:10,Product_Type:'TYPE',PART:'PART',SUB_PART:'SUB'},entryCtx.getEntries(planRow)[0],false);assert.match(seededRow,/data-contact-order-date type=\"date\" value=\"2026-10-05\"/,'editable receipt-date input is initially filled with Plan date');assert.match(orderRowCtx.drawOrderRow({...planRow,Sale_ID:'S1'}, {Order_Type:'EXTRA',Order_Date:'',Order_Qty:''},true),/รับเพิ่มจากแผน/,'extra order entry is visibly identified');
+entryCtx.orders=[{Order_ID:'O1',Plan_ID:'P1',Order_Date:'2026-10-05',Order_Qty:10,Order_UOM:'KG',Order_Type:'PLAN',Data_Status:'LIVE'},{Order_ID:'O2',Plan_ID:'P1',Order_Date:'2026-10-07',Order_Qty:5,Order_UOM:'KG',Order_Type:'EXTRA',Data_Status:'LIVE'}];
+assert.equal(entryCtx.getEntries(planRow).length,2,'one Plan can have multiple received-order dates/quantities');
 
 console.log('Target/dashboard smoke checks passed: date validation, scoped filters, searchable production picker, monthly product filters, named Channel display, target hierarchy, detail popup, and expand/collapse.');
