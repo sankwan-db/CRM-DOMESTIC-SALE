@@ -514,10 +514,10 @@ function weeklyPlanDateKey(value,weekKey=''){
  if(value===null||value===undefined||value==='')return'';
  const iso=(y,m,d)=>{const dt=new Date(Date.UTC(Number(y),Number(m)-1,Number(d)));return dt.getUTCFullYear()===Number(y)&&dt.getUTCMonth()+1===Number(m)&&dt.getUTCDate()===Number(d)?dt.toISOString().slice(0,10):''};
  if(value instanceof Date&&!Number.isNaN(value.getTime()))return value.toISOString().slice(0,10);
- if(typeof value==='number'||/^\\d{5}(?:\\.\\d+)?$/.test(String(value).trim())){const n=Number(value);if(n>=20000&&n<=100000)return new Date(Date.UTC(1899,11,30)+Math.round(n)*86400000).toISOString().slice(0,10)}
- const raw=String(value).trim(),head=raw.slice(0,10),ymd=head.match(/^(\\d{4})[-/.](\\d{1,2})[-/.](\\d{1,2})$/);
+ if(typeof value==='number'||/^\d{5}(?:\.\d+)?$/.test(String(value).trim())){const n=Number(value);if(n>=20000&&n<=100000)return new Date(Date.UTC(1899,11,30)+Math.round(n)*86400000).toISOString().slice(0,10)}
+ const raw=String(value).trim(),head=raw.slice(0,10),ymd=head.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
  if(ymd)return iso(ymd[1],ymd[2],ymd[3]);
- const slash=head.match(/^(\\d{1,2})[/.](\\d{1,2})[/.](\\d{4})$/);
+ const slash=head.match(/^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/);
  if(slash){
   const a=Number(slash[1]),b=Number(slash[2]),y=Number(slash[3]),md=iso(y,a,b),dm=iso(y,b,a);
   if(a>12)return dm;
@@ -525,7 +525,7 @@ function weeklyPlanDateKey(value,weekKey=''){
   if(weekKey&&md&&dm&&md!==dm){const range=toWeekRange(weekKey);if(range?.start&&range?.end){const inRange=x=>x>=range.start&&x<=range.end;if(inRange(md)&&!inRange(dm))return md;if(inRange(dm)&&!inRange(md))return dm}}
   return md||dm;
  }
- const normalized=normDate(value);if(/^\\d{4}-\\d{2}-\\d{2}$/.test(normalized)){const [y,m,d]=normalized.split('-');return iso(y,m,d)}
+ const normalized=normDate(value);if(/^\d{4}-\d{2}-\d{2}$/.test(normalized)){const [y,m,d]=normalized.split('-');return iso(y,m,d)}
  const parsed=new Date(raw);return Number.isNaN(parsed.getTime())?'':parsed.toISOString().slice(0,10)
 }
 function weeklyActualInPlanUom(group,date,uom){const matches=rows('actuals').filter(a=>String(a.Data_Status||'LIVE').toUpperCase()!=='DELETED'&&a.Sale_ID===group.Sale_ID&&a.Customer_Code===group.Customer_Code&&weeklyPlanDateKey(a.Sales_Date)===date&&passesWeeklyPlanFilters(a)).filter(a=>{const i=rows('items').find(x=>String(x.Item_Code)===String(a.Item_Code))||{};return (i.Product_Type||a.Product_Type||'')===group.Product_Type&&(i.PART||a.PART||'')===group.PART&&(i.SUB_PART||a.SUB_PART||'')===group.SUB_PART&&(!group.Group_Product_ID||String(i.Group_Product_ID||'')===String(group.Group_Product_ID))&&(!group.Item_Code||String(a.Item_Code||'')===String(group.Item_Code))});let qty=0,missing=0;for(const a of matches){const item=rows('items').find(x=>String(x.Item_Code)===String(a.Item_Code));if(!item){missing++;continue}if(String(a.UOM||'').trim().toUpperCase()===String(uom||'').trim().toUpperCase()&&a.Qty!==''&&a.Qty!=null){qty+=Number(a.Qty)||0;continue}let kg=Number(a.Qty_KG);if((a.Qty_KG==null||a.Qty_KG==='')&&Number.isFinite(Number(a.Qty_MT)))kg=Number(a.Qty_MT)*1000;if((a.Qty_KG==null||a.Qty_KG==='')&&(a.Qty_MT==null||a.Qty_MT==='')){const conversion=actualUomConversion(item,a.UOM);kg=conversion.factor>0?Number(a.Qty||0)*conversion.factor:NaN}const factor=itemFactorInUom(item,uom);if(!Number.isFinite(kg)||factor<=0){missing++;continue}qty+=kg/factor}return {qty,missing,count:matches.length}}
