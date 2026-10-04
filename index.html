@@ -358,16 +358,33 @@ body.modal-open{overflow:hidden}
 .weekly-matrix tbody tr.weekly-summary-row>*{position:sticky!important;top:150px;z-index:7;background:#f7f9fc}
 .weekly-matrix tbody tr.weekly-forecast-row th:first-child,.weekly-matrix tbody tr.weekly-summary-row th:first-child{left:0!important;z-index:13!important}
 
-/* Weekly plan matrix: no frozen rows or columns; the whole table scrolls normally. */
-#app .weekly-matrix,
-#app .weekly-matrix *{
- position:static!important;
- inset:auto!important;
- top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;
- z-index:auto!important;
- box-shadow:none!important;
-}
-#app .weekly-matrix-wrap .weekly-table-scroll{overflow:auto}
+/* Weekly plan grid: freeze header and totals through Contact Total; freeze identity columns through Sale. */
+#app .weekly-table-scroll{position:relative;overflow:auto;isolation:isolate}
+#app .weekly-matrix{border-collapse:separate;border-spacing:0}
+#app .weekly-matrix thead tr:nth-child(1)>th{position:sticky!important;top:0!important;z-index:20!important;background:#eaf0f8}
+#app .weekly-matrix thead tr:nth-child(2)>th{position:sticky!important;top:var(--wf-head-2,46px)!important;z-index:20!important;background:#f1f5fb}
+#app .weekly-matrix thead tr:nth-child(3)>th{position:sticky!important;top:var(--wf-head-3,84px)!important;z-index:20!important;background:#f7f9fc}
+#app .weekly-matrix thead tr:first-child>th:nth-child(1),
+#app .weekly-matrix thead tr:first-child>th:nth-child(2),
+#app .weekly-matrix thead tr:first-child>th:nth-child(3),
+#app .weekly-matrix thead tr:first-child>th:nth-child(4){left:0;z-index:30!important}
+#app .weekly-matrix thead tr:first-child>th:nth-child(2){left:var(--wf-left-2,180px)}
+#app .weekly-matrix thead tr:first-child>th:nth-child(3){left:var(--wf-left-3,280px)}
+#app .weekly-matrix thead tr:first-child>th:nth-child(4){left:var(--wf-left-4,460px)}
+#app .weekly-matrix tbody tr:not(.weekly-type-group):not(.weekly-summary-row):not(.weekly-forecast-row)>:nth-child(-n+4){position:sticky!important;z-index:12!important;background:#fff}
+#app .weekly-matrix tbody tr:not(.weekly-type-group):not(.weekly-summary-row):not(.weekly-forecast-row)>:nth-child(1){left:0}
+#app .weekly-matrix tbody tr:not(.weekly-type-group):not(.weekly-summary-row):not(.weekly-forecast-row)>:nth-child(2){left:var(--wf-left-2,180px)}
+#app .weekly-matrix tbody tr:not(.weekly-type-group):not(.weekly-summary-row):not(.weekly-forecast-row)>:nth-child(3){left:var(--wf-left-3,280px)}
+#app .weekly-matrix tbody tr:not(.weekly-type-group):not(.weekly-summary-row):not(.weekly-forecast-row)>:nth-child(4){left:var(--wf-left-4,460px);z-index:14!important;background:#f0f4fa}
+#app .weekly-matrix tbody tr.weekly-forecast-row>*{position:sticky!important;top:var(--wf-forecast-top,122px)!important;z-index:18!important;background:#fff}
+#app .weekly-matrix tbody tr.weekly-summary-row>*{position:sticky!important;top:var(--wf-summary-top,160px)!important;z-index:18!important;background:#f7f9fc}
+#app .weekly-matrix tbody tr.weekly-forecast-row>th:first-child,
+#app .weekly-matrix tbody tr.weekly-summary-row>th:first-child{left:0;z-index:24!important;text-align:left}
+#app .weekly-matrix tbody tr.weekly-freeze-boundary>*{position:sticky!important;top:var(--wf-boundary-top,198px)!important;left:auto!important;z-index:17!important;background:#f4c861;color:#3a2b00}
+#app .weekly-matrix tbody tr.weekly-type-group:not(.weekly-freeze-boundary)>*{position:static!important;top:auto!important;left:auto!important;z-index:auto!important}
+#app .weekly-matrix tfoot th,#app .weekly-matrix tfoot td{position:static!important;top:auto!important;left:auto!important;right:auto!important;z-index:auto!important;box-shadow:none!important}
+#app .weekly-matrix .weekly-total-plan,#app .weekly-matrix .weekly-total-actual{position:static!important;left:auto!important;right:auto!important;z-index:auto!important;box-shadow:none!important}
+#app .weekly-edit-btn{min-width:90px}
 </style></head><body><div class="layout" id="layout"><aside class="sidebar"><div class="brand"><div class="brandmark">S</div><div class="brandtext"><b>CRM</b><small>DOMESTIC SALE</small></div></div><div class="navlabel">SALES EXECUTION</div><nav class="nav" id="nav"></nav><div class="userbox"><span id="connectionLabel">● ยังไม่เชื่อมต่อฐานข้อมูล</span><button class="btn small" style="float:right" id="toggleSide">‹</button></div></aside><main class="main"><header class="top"><div><div class="crumb">CRM / DOMESTIC SALE</div><h1 id="topTitle">Dashboard</h1></div><div class="topright"><button id="refreshData" class="btn" title="ดึงข้อมูลล่าสุดจาก Google Sheet">↻ รีเฟรชข้อมูล</button><span id="whoami" class="pill">ยังไม่ได้เข้าสู่ระบบ</span><button id="signin" class="btn primary">เชื่อมต่อ Google Sheet</button><button id="signout" class="btn hidden">ออก</button></div></header><div class="content" id="app"></div></main></div><div class="modalback" id="modalback"><div class="modal" id="modal"></div></div><div id="toast" class="toast hidden"></div>
 <script>
 'use strict';
@@ -439,4 +456,4 @@ function setupPage(){return pageHead('ตั้งค่าการเชื่
 function render(){if(!$('#app'))return;if(!token){$('#app').innerHTML=page==='setup'?setupPage():pageHead('CRM Domestic Sale','เชื่อมต่อบัญชี Google ที่มีสิทธิ์แก้ไข Google Sheet เพื่อเริ่มใช้งาน')+`<div class="card"><div class="empty">ระบบเก็บข้อมูลบน Google Sheet ของคุณ<br>กดปุ่มเชื่อมต่อที่มุมขวาบน แล้วเลือกบัญชี Gmail ที่ได้รับสิทธิ์ Editor</div></div>`;return}if(page==='dashboard')$('#app').innerHTML=dashboard();if(page==='targets')$('#app').innerHTML=targetsPage();if(page==='import')$('#app').innerHTML=importPage();if(page==='actions')$('#app').innerHTML=actionPage();if(page==='master')$('#app').innerHTML=masterPage();bindFilters();$('#app').querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>{targetTab=+b.dataset.tt;render();drawTargets()});if(page==='targets'){drawTargets();$('#tshow').onclick=drawTargets;['tyear','tmonth','tchannel'].forEach(x=>$('#'+x).onchange=drawTargets)}if(page==='actions'){$('#newAction').onclick=()=>actionForm();$('#app').querySelectorAll('[data-at]').forEach(b=>b.onclick=()=>{actTab=b.dataset.at;render()});drawActions()}if(page==='import'){ $('#previewImport').onclick=previewImport;$('#downloadImportTemplate').onclick=()=>downloadTemplate();$('#exportActual').onclick=()=>exportRows(rows('actuals'),'T_SALES_ACTUAL')}if(page==='master'){$('#app').querySelectorAll('[data-mtab]').forEach(b=>b.onclick=()=>{mtab=b.dataset.mtab;render();drawMaster()});drawMaster()}$('#exportDashboard')?.addEventListener('click',()=>exportRows(currentFiltered(),'Dashboard_Actual'))}
 function downloadTemplate(){let wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([['Sales_Date','Item_Code','Customer_Code','Qty','UOM'],[today(),'ITEM-001','CUST-001',1000,'KG']]);XLSX.utils.book_append_sheet(wb,ws,'Sales Import');XLSX.writeFile(wb,'CRM_Domestic_Sales_Import_Template.xlsx')}
 drawNav();go('dashboard');
-</script><script src="app-v2.js?v=weekly-plan-edit-rowref-no-freeze-20261004-5"></script></body></html>
+</script><script src="app-v2.js?v=weekly-plan-edit-freeze-contact-total-sale-20261004-6"></script></body></html>
