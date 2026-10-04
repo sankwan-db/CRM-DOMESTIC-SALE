@@ -235,6 +235,88 @@ body.modal-open{overflow:hidden}
 
 /* Dashboard Detail hierarchy: compact, aligned columns and readable group rows */
 .hierarchy-card{width:100%;overflow:hidden}.hierarchy-title{align-items:flex-start;gap:16px}.hierarchy-wrap{max-height:min(68vh,760px);overflow:auto;border:1px solid #e1e8f2;border-radius:10px}.hierarchy-table{width:100%;min-width:900px;table-layout:fixed;border-collapse:separate;border-spacing:0}.hierarchy-table th,.hierarchy-table td{padding:11px 13px;border-bottom:1px solid #e8edf5;vertical-align:middle}.hierarchy-table thead th{position:sticky;top:0;z-index:3;background:#f3f6fb;text-align:center;white-space:nowrap}.hierarchy-table th:first-child{width:39%;text-align:left}.hierarchy-table th:nth-child(2){width:16%}.hierarchy-table th:nth-child(3){width:16%}.hierarchy-table th:nth-child(4),.hierarchy-table th:nth-child(5){width:11%}.hierarchy-table th:nth-child(6){width:12%}.hierarchy-table td.hierarchy-name{text-align:left}.hierarchy-table td.hierarchy-period,.hierarchy-table td.hierarchy-sale{text-align:left;color:#314267}.hierarchy-label{display:flex;align-items:center;gap:7px;min-height:24px}.hierarchy-row.level-0{background:#f0f5ff;font-weight:700}.hierarchy-row.level-1{background:#f8faff;font-weight:650}.hierarchy-row.level-2{background:#fff;font-weight:600}.hierarchy-row.level-3{background:#fff}.hierarchy-row.level-4{background:#fbfcfe}.hierarchy-row.level-5{background:#fff}.hierarchy-table tbody tr:hover{background:#f2f7ff}.hierarchy-table td.num,.hierarchy-table th.num{text-align:right;font-variant-numeric:tabular-nums}.hierarchy-table tfoot th{position:sticky;bottom:0;z-index:2;background:#eaf0fa;font-weight:700}.hierarchy-table .tree-toggle{flex:none}.hierarchy-table .tree-spacer{flex:none;width:24px}.actual-detail-card .tablewrap{max-height:68vh;overflow:auto}.actual-detail-card .tablewrap table{min-width:1100px}.dash-tabs button{white-space:nowrap}
+
+/* Weekly plan matrix: align frozen identity columns to their actual colgroup widths.
+   Summary columns stay in normal horizontal flow (never pinned). */
+.weekly-matrix-wrap .weekly-table-scroll{
+  position:relative;
+  overflow:auto;
+  overscroll-behavior:contain;
+  isolation:isolate;
+  scrollbar-gutter:stable;
+}
+.weekly-matrix{
+  width:2327px!important;
+  min-width:2327px!important;
+  max-width:none!important;
+  table-layout:fixed!important;
+  border-collapse:separate!important;
+  border-spacing:0!important;
+}
+.weekly-matrix colgroup col:nth-child(1){width:180px!important;min-width:180px!important}
+.weekly-matrix colgroup col:nth-child(2){width:100px!important;min-width:100px!important}
+.weekly-matrix colgroup col:nth-child(3){width:180px!important;min-width:180px!important}
+.weekly-matrix colgroup col:nth-child(4){width:105px!important;min-width:105px!important}
+.weekly-matrix colgroup col:nth-child(n+5){min-width:0!important}
+.weekly-matrix th,.weekly-matrix td{
+  box-sizing:border-box!important;
+  min-width:0!important;
+  max-width:none!important;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.weekly-matrix thead tr:first-child>th:nth-child(-n+4),
+.weekly-matrix thead tr:nth-child(2)>th:nth-child(-n+4),
+.weekly-matrix thead tr:nth-child(3)>th:nth-child(-n+4){
+  position:sticky!important;
+}
+.weekly-matrix thead tr:first-child>th:nth-child(1){left:0!important;z-index:16!important;width:180px!important;background:#eaf0f8!important}
+.weekly-matrix thead tr:first-child>th:nth-child(2){left:180px!important;z-index:16!important;width:100px!important;background:#eaf0f8!important}
+.weekly-matrix thead tr:first-child>th:nth-child(3){left:280px!important;z-index:16!important;width:180px!important;background:#eaf0f8!important;text-align:left!important}
+.weekly-matrix thead tr:first-child>th:nth-child(4){left:460px!important;z-index:17!important;width:105px!important;background:#eaf0f8!important}
+.weekly-matrix thead tr:nth-child(2)>th{top:42px!important}
+.weekly-matrix thead tr:nth-child(3)>th{top:76px!important}
+.weekly-matrix thead tr:first-child>th[rowspan="3"]{top:0!important}
+.weekly-matrix tbody tr:not(.weekly-type-group):not(.weekly-summary-row):not(.weekly-forecast-row)>td:nth-child(1){
+  position:sticky!important;left:0!important;z-index:8!important;width:180px!important;background:#fff
+}
+.weekly-matrix tbody tr:not(.weekly-type-group):not(.weekly-summary-row):not(.weekly-forecast-row)>td:nth-child(2){
+  position:sticky!important;left:180px!important;z-index:8!important;width:100px!important;background:#fff
+}
+.weekly-matrix tbody tr:not(.weekly-type-group):not(.weekly-summary-row):not(.weekly-forecast-row)>td:nth-child(3){
+  position:sticky!important;left:280px!important;z-index:8!important;width:180px!important;background:#fff;text-align:left!important
+}
+.weekly-matrix tbody tr:not(.weekly-type-group):not(.weekly-summary-row):not(.weekly-forecast-row)>td:nth-child(4){
+  position:sticky!important;left:460px!important;z-index:9!important;width:105px!important;background:#f0f4fa!important
+}
+.weekly-matrix tbody tr:nth-child(even):not(.weekly-type-group):not(.weekly-summary-row):not(.weekly-forecast-row)>td:nth-child(1),
+.weekly-matrix tbody tr:nth-child(even):not(.weekly-type-group):not(.weekly-summary-row):not(.weekly-forecast-row)>td:nth-child(2),
+.weekly-matrix tbody tr:nth-child(even):not(.weekly-type-group):not(.weekly-summary-row):not(.weekly-forecast-row)>td:nth-child(3){background:#f7f9fc}
+.weekly-matrix tbody tr:hover:not(.weekly-type-group):not(.weekly-summary-row):not(.weekly-forecast-row)>td:nth-child(-n+4){background:#edf3fb}
+.weekly-matrix td.weekly-category,.weekly-matrix td.weekly-customer{
+  white-space:normal!important;
+  overflow-wrap:anywhere;
+  text-align:left!important;
+}
+.weekly-matrix thead th{text-align:center!important}
+.weekly-matrix thead th.weekly-category-head{text-align:left!important}
+.weekly-matrix .weekly-total-plan,.weekly-matrix .weekly-total-actual,
+.weekly-matrix thead .weekly-total-plan,.weekly-matrix thead .weekly-total-actual,
+.weekly-matrix tfoot .weekly-total-plan,.weekly-matrix tfoot .weekly-total-actual{
+  position:static!important;
+  left:auto!important;
+  right:auto!important;
+  z-index:auto!important;
+}
+.weekly-matrix tfoot th,.weekly-matrix tfoot td,
+.weekly-matrix tfoot tr.weekly-forecast-row th,.weekly-matrix tfoot tr.weekly-forecast-row td{
+  position:static!important;
+  top:auto!important;
+  bottom:auto!important;
+  z-index:auto!important;
+  box-shadow:none!important;
+}
+
 </style></head><body><div class="layout" id="layout"><aside class="sidebar"><div class="brand"><div class="brandmark">S</div><div class="brandtext"><b>CRM</b><small>DOMESTIC SALE</small></div></div><div class="navlabel">SALES EXECUTION</div><nav class="nav" id="nav"></nav><div class="userbox"><span id="connectionLabel">● ยังไม่เชื่อมต่อฐานข้อมูล</span><button class="btn small" style="float:right" id="toggleSide">‹</button></div></aside><main class="main"><header class="top"><div><div class="crumb">CRM / DOMESTIC SALE</div><h1 id="topTitle">Dashboard</h1></div><div class="topright"><button id="refreshData" class="btn" title="ดึงข้อมูลล่าสุดจาก Google Sheet">↻ รีเฟรชข้อมูล</button><span id="whoami" class="pill">ยังไม่ได้เข้าสู่ระบบ</span><button id="signin" class="btn primary">เชื่อมต่อ Google Sheet</button><button id="signout" class="btn hidden">ออก</button></div></header><div class="content" id="app"></div></main></div><div class="modalback" id="modalback"><div class="modal" id="modal"></div></div><div id="toast" class="toast hidden"></div>
 <script>
 'use strict';
