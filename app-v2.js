@@ -286,16 +286,12 @@ async function deleteWeeklyPlan(planId,rowNo){const x=weeklyPlanByRef(planId,row
 function syncWeeklyMatrixFreeze(){
  const tables=[...document.querySelectorAll('#actionContent .weekly-matrix')];
  for(const table of tables){
-  const head=[...table.tHead.rows],body=table.tBodies[0];if(head.length<3||!body)continue;
-  const height=row=>row?.getBoundingClientRect().height||0,h1=height(head[0]),h2=height(head[1]),h3=height(head[2]),forecast=body.querySelector('.weekly-forecast-row'),summary=body.querySelector('.weekly-summary-row'),boundary=body.querySelector('.weekly-freeze-boundary'),hf=height(forecast),hs=height(summary);
+  const head=[...table.tHead.rows];if(head.length<3)continue;
+  const h1=head[0].getBoundingClientRect().height||0,h2=head[1].getBoundingClientRect().height||0;
   table.style.setProperty('--wf-head-2',h1+'px');
   table.style.setProperty('--wf-head-3',(h1+h2)+'px');
-  table.style.setProperty('--wf-forecast-top',(h1+h2+h3)+'px');
-  table.style.setProperty('--wf-summary-top',(h1+h2+h3+hf)+'px');
-  table.style.setProperty('--wf-boundary-top',(h1+h2+h3+hf+hs)+'px');
-  let left=0;const firstCells=[...head[0].cells].slice(0,4);
-  firstCells.forEach((cell,index)=>{table.style.setProperty('--wf-left-'+(index+1),left+'px');left+=cell.getBoundingClientRect().width});
-  table.style.setProperty('--wf-left-5',left+'px');
+  let left=0;const identityCells=[...head[0].cells].slice(0,4);
+  identityCells.forEach((cell,index)=>{table.style.setProperty('--wf-left-'+(index+1),left+'px');left+=cell.getBoundingClientRect().width});
  }
 }
 if(!window.weeklyFreezeResizeBound){window.weeklyFreezeResizeBound=true;window.addEventListener('resize',()=>requestAnimationFrame(syncWeeklyMatrixFreeze))}
@@ -565,7 +561,7 @@ function weeklyPlanTable(list){
     const ca=rows('customers').find(c=>c.Customer_Code===a.Customer_Code)?.Customer_Name||a.Customer_Code||'',cb=rows('customers').find(c=>c.Customer_Code===b.Customer_Code)?.Customer_Name||b.Customer_Code||'';
     return String(a.Plan_Type).localeCompare(String(b.Plan_Type),'th')||String(ca).localeCompare(String(cb),'th')||String(a.Sale_ID||'').localeCompare(String(b.Sale_ID||''),'th')||String(a.Product_Level).localeCompare(String(b.Product_Level),'th')
    });
-   const rowHtml=orderedGroups.map((g,gi)=>{const sameType=orderedGroups.filter(x=>x.Plan_Type===g.Plan_Type),typePlan=sameType.reduce((n,x)=>n+x.plans.reduce((m,p)=>m+Number(p.Plan_Qty||0),0),0),typeLabel=g.Plan_Type==='Contact'?'Contact':'Spot รายวัน',typeHeader=gi===0||orderedGroups[gi-1].Plan_Type!==g.Plan_Type?'<tr class="weekly-type-group weekly-freeze-boundary"><th colspan="24">'+esc(typeLabel)+' · '+sameType.length+' รายการ · Plan '+fmt(typePlan,3)+' '+esc(g.Plan_UOM)+'</th></tr>':'';
+   const rowHtml=orderedGroups.map((g,gi)=>{const sameType=orderedGroups.filter(x=>x.Plan_Type===g.Plan_Type),typePlan=sameType.reduce((n,x)=>n+x.plans.reduce((m,p)=>m+Number(p.Plan_Qty||0),0),0),typeLabel=g.Plan_Type==='Contact'?'Contact':'Spot รายวัน',typeHeader=gi===0||orderedGroups[gi-1].Plan_Type!==g.Plan_Type?'<tr class="weekly-type-group"><th colspan="24">'+esc(typeLabel)+' · '+sameType.length+' รายการ · Plan '+fmt(typePlan,3)+' '+esc(g.Plan_UOM)+'</th></tr>':'';
     const planFor=d=>g.plans.filter(p=>weeklyPlanDateKey(p.Plan_Date,p.Week_Key)===d).reduce((n,p)=>n+Number(p.Plan_Qty||0),0),actualFor=d=>weeklyActualInPlanUom(g,d,g.Plan_UOM),pSum=g.plans.reduce((n,p)=>n+Number(p.Plan_Qty||0),0),contactPlan=g.Plan_Type==='Contact'?pSum:0,spotPlan=g.Plan_Type==='Spot'?pSum:0,daily=dates.map(d=>({d,plan:planFor(d),actual:g.actualOwner?actualFor(d):{qty:0,missing:0,count:0}})),aSum=daily.reduce((n,x)=>n+x.actual.qty,0),missing=daily.reduce((n,x)=>n+x.actual.missing,0),coverage=missing?'—':g.actualOwner&&pSum?fmt(aSum/pSum*100,1)+'%':'—';
     totalPlan+=pSum;if(g.Plan_Type==='Contact')totalContactPlan+=pSum;else totalSpotPlan+=pSum;totalActual+=aSum;totalMissing+=missing;
     const actualCell=x=>x.actual.missing?'<span class="badge warn" title="ตรวจ UOM ของ '+x.actual.missing+' Actual">UOM ไม่ครบ ('+x.actual.missing+')</span>':fmt(x.actual.qty,3);
