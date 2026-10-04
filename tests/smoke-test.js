@@ -6,7 +6,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const app = fs.readFileSync(path.join(root, 'app-v2.js'), 'utf8');
-assert.match(html, /app-v2\.js\?v=weekly-plan-fix-20261004-07/, 'GitHub Pages cache key is refreshed for weekly plan fixes');
+assert.match(html, /app-v2\.js\?v=weekly-plan-fix-20261004-10/, 'GitHub Pages cache key is refreshed for weekly plan fixes');
 assert.doesNotMatch(html, /M_PRODUCT_GROUP:'G'/, 'Google Sheets loader does not request unused M_PRODUCT_GROUP');
 assert.match(html, /T_WEEKLY_CUSTOMER_PLAN:'Y'/, 'Google Sheets loader reads Group Product fields on weekly plans');
 assert.match(app, /HEAD\[TAB\.weeklyPlans\]=\[\.\.\.HEAD\[TAB\.weeklyPlans\],'Plan_Type','Contact_Completed','Product_Type','PART','SUB_PART'/, 'Weekly plans persist at Product Type/PART/SUB-PART grain');
@@ -16,6 +16,13 @@ assert.match(app, /data-w-sale[\s\S]*customer\?\.Assigned_Sale_ID/, 'Weekly plan
 assert.equal((app.match(/function weeklyPlanTable\(list\)\{/g)||[]).length,1,'Only one weekly plan table renderer is active');
 assert.match(app,/data-weekly-expand[\s\S]*?ย่อกลับ/,'Weekly matrix has a visible expand/collapse control');
 assert.match(app,/data-week-edit[\s\S]*?แก้ไขคิว/,'Weekly matrix retains per-plan schedule edit controls');
+assert.match(app,/function targetActualMatches[\s\S]*function targetActualQty[\s\S]*?actualQtyMT/,'Target performance maps imported actuals to plan dimensions');
+assert.match(app,/function saleTargetActualTable[\s\S]*% Sales เทียบเป้า/,'Dashboard compares Sale target against actual sales');
+assert.doesNotMatch(app,/uniqueChannelRows/,'No unresolved uniqueChannelRows reference remains');
+assert.match(app,/function render\(\)[\s\S]*?dashboard\(\)/,'Dashboard route renders through the current app version');
+assert.match(html,/weekly-plan-fix-20261004-10/,'HTML activates the latest CRM dashboard script');
+assert.match(html,/modalback\.open\{z-index:10050!important\}/,'Weekly editor modal renders above frozen table headers');
+assert.match(html,/tfoot th,\.weekly-matrix tfoot td\{position:static!important/,'Weekly summary footer does not cover data rows');
 assert.match(app, /function downloadWeeklyPlanTemplate[\s\S]*CRM_Weekly_Customer_Plan_Template\.xlsx/, 'Weekly Plan provides an Excel template');
 assert.match(app, /function exportWeeklyPlanExcel[\s\S]*Weekly_Plan_/, 'Weekly Plan supports Excel export');
 assert.match(app, /function importWeeklyPlanExcel[\s\S]*prepareWeeklyPlanImport/, 'Weekly Plan supports validated Excel import');
@@ -58,10 +65,12 @@ ctx.db = {
   items: [{Item_Code:'I1',Item_Name:'Demo Item',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Base_UOM:'BOX',KG_Per_UOM:500}],
   sales: [{Sale_ID:'S1',Sale_Name:'Sale One',Channel:'Market'},{Sale_ID:'S2',Sale_Name:'Sale Two',Channel:'Market'}],
   customers: [{Customer_Code:'C1',Customer_Name:'Customer One',Assigned_Sale_ID:'S1',Channel:'Market'},{Customer_Code:'C2',Customer_Name:'Customer Two',Assigned_Sale_ID:'S2',Channel:'Market'},{Customer_Code:'C3',Customer_Name:'Customer Three',Assigned_Sale_ID:'S1',Channel:'Market'}], actuals: [], actions: [], weeklyPlans: [],
-  targets: [{Target_ID:'A1',Year:2026,Month:10,Channel:'Market',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Sale_ID:'S1',Target_MT:10,Data_Status:'LIVE'}]
+  targets: [{Target_ID:'A1',Year:2026,Month:10,Channel:'Market',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Sale_ID:'S1',Target_MT:10,Data_Status:'LIVE'}],
+  channels: [{Channel_Code:'MKT',Channel_Name:'Market',Active:'Y'},{Channel_Code:'MKT',Channel_Name:'Market Duplicate',Active:'Y'}]
 };
+ctx.db.actuals=[{Actual_ID:'ACT1',Sales_Date:'2026-10-03',Channel:'MKT',Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Qty_KG:2500,Qty_MT:2.5,Data_Status:'LIVE'}];
 let source = app.replace(/drawNav\(\);go\('dashboard'\);/g, '');
-source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,weeklyPlanTable,passesWeeklyPlanFilters,normalizeWeeklyKey,weeklyPlanDateKey,weeklyActualInPlanUom,filterState,categoryActualInPlanUom,contactAcceptancePct,actionRowV2,actionCard,calendarMonth,groupUomOptions,customerLovOptionsForGroup,priorWeeklyMetrics,prepareWeeklyPlanImport};';
+source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,targetCoverage,splitTable,targetActualQty,targetActualTotal,channelUniqueRows,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,weeklyPlanTable,passesWeeklyPlanFilters,normalizeWeeklyKey,weeklyPlanDateKey,weeklyActualInPlanUom,filterState,categoryActualInPlanUom,contactAcceptancePct,actionRowV2,actionCard,calendarMonth,groupUomOptions,customerLovOptionsForGroup,priorWeeklyMetrics,prepareWeeklyPlanImport};';
 vm.runInNewContext(source, ctx, {filename:'app-v2.js'});
 const api = ctx.crmTestApi;
 assert.equal(api.selfCheck.bad.length, 0, 'built-in date/UOM checks pass');
@@ -72,6 +81,13 @@ ctx.db.teamTargets = [team];
 assert.equal(api.allocationsForTeam(team).reduce((n,x)=>n+Number(x.Target_MT),0),10,'allocation totals match exact category');
 ctx.db.targets.push({Target_ID:'A2',Year:2026,Month:10,Channel:'Market',Product_Type:'Value Add',PART:'Leg',SUB_PART:'DMS',Sale_ID:'S1',Target_MT:99,Data_Status:'LIVE'});
 assert.equal(api.allocationsForTeam(team).reduce((n,x)=>n+Number(x.Target_MT),0),10,'same SUB-PART under a different Product Type is excluded');
+assert.equal(api.channelUniqueRows().length,1,'Channel master list removes duplicate channel codes');
+assert.equal(api.targetActualQty(team),2.5,'Monthly team target shows matched imported Actual in MT');
+assert.equal(api.targetActualQty(ctx.db.targets[0],'S1'),2.5,'Sale target Actual matches month, channel, product and Sale');
+assert.equal(api.targetActualTotal([team,team]),2.5,'Actual rows are not double-counted when scopes overlap');
+assert.ok(api.teamTargetTable([team]).includes('ยอดขาย Actual (MT)'),'Team target table includes imported Actual');
+assert.ok(api.splitTable(ctx.db.targets).includes('% Sales เทียบเป้า'),'Individual monthly target table includes Actual achievement');
+assert.ok(api.targetCoverage([team],ctx.db.targets,ctx.db.actuals).includes('2.50 MT'),'Target hierarchy displays Actual against team target');
 const targetHtml = api.teamTargetTable([team]);
 for (const text of ['2026','10','Special','Leg','DMS','Team Target']) assert.ok(targetHtml.includes(text), `target summary includes ${text}`);
 const report = api.salesProductReport([{Sale_ID:'S1',Item_Code:'I1',Qty_MT:4}],ctx.db.targets.slice(0,1));
