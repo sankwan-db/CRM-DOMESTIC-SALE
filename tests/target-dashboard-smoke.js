@@ -62,6 +62,12 @@ assert.match(app, /weeklyActualFilterRow\(a,group.Sale_ID\)/, 'weekly filters us
 assert.match(html, /\.team-target-tree \.hierarchy-row\{min-width:1340px;grid-template-columns:[^}]+\}/, 'hierarchy table columns fit the added management actions');
 assert.match(app, /weekly-total-plan[^]*weekly-total-actual[^]*% Coverage[^]*ปรับ Plan/, 'weekly summary columns follow Plan, Actual, Coverage, Adjust Plan');
 assert.match(app, /function openWeeklyEdit\(o\)[^]*weeklyGroupKey\(x\)===key[^]*openWeeklyEditor/, 'Edit Plan loads every date and plan type for the selected customer/product group');
+assert.match(app, /<tr class=\"hierarchy-data-row level-'.*?hierarchy-qty/, 'Dashboard detail rows use table-native rows, not the div hierarchy grid');
+assert.match(app, /<colgroup><col class=\"hier-col-product\"><col class=\"hier-col-period\"><col class=\"hier-col-sale\"><col class=\"hier-col-plan\"><col class=\"hier-col-actual\"><col class=\"hier-col-coverage\"><\/colgroup>/, 'Dashboard detail defines one fixed width for each of its six columns');
+const targetTreeFn = app.slice(app.lastIndexOf('function teamTargetTable(data){'), app.indexOf('function splitTable(data)', app.lastIndexOf('function teamTargetTable(data){')));
+assert.match(targetTreeFn, /channelNameForTarget\(t.Channel\)\)\+'<\/span>/, 'target leaf row shows the Channel name');
+assert.doesNotMatch(targetTreeFn, /channelNameForTarget\(t.Channel\).*Group Product|channelNameForTarget\(t.Channel\).*SUB-PART/, 'target leaf does not repeat SUB-PART or Group Product after Channel');
+assert.match(html, /hierarchy-table tr\.hierarchy-data-row\{display:table-row/, 'hierarchy rows retain native table column alignment');
 assert.match(app, /weekly-contact-total/, 'weekly matrix keeps a distinct Contact Total row');
 assert.match(html, /weekly-contact-total>th:first-child[^]*left:0[^]*wf-identity-width/, 'Contact Total label stays aligned with the frozen identity columns through Sale');
 
