@@ -317,6 +317,19 @@ body.modal-open{overflow:hidden}
   box-shadow:none!important;
 }
 
+
+/* The weekday and Plan/Actual header rows do not contain the four identity columns.
+   Keep their vertical sticky header only; never pin their first date cells horizontally. */
+.weekly-matrix thead tr:nth-child(2)>th,
+.weekly-matrix thead tr:nth-child(3)>th{
+  position:sticky!important;
+  left:auto!important;
+  right:auto!important;
+  inset-inline-start:auto!important;
+  inset-inline-end:auto!important;
+  transform:none!important;
+}
+
 </style></head><body><div class="layout" id="layout"><aside class="sidebar"><div class="brand"><div class="brandmark">S</div><div class="brandtext"><b>CRM</b><small>DOMESTIC SALE</small></div></div><div class="navlabel">SALES EXECUTION</div><nav class="nav" id="nav"></nav><div class="userbox"><span id="connectionLabel">● ยังไม่เชื่อมต่อฐานข้อมูล</span><button class="btn small" style="float:right" id="toggleSide">‹</button></div></aside><main class="main"><header class="top"><div><div class="crumb">CRM / DOMESTIC SALE</div><h1 id="topTitle">Dashboard</h1></div><div class="topright"><button id="refreshData" class="btn" title="ดึงข้อมูลล่าสุดจาก Google Sheet">↻ รีเฟรชข้อมูล</button><span id="whoami" class="pill">ยังไม่ได้เข้าสู่ระบบ</span><button id="signin" class="btn primary">เชื่อมต่อ Google Sheet</button><button id="signout" class="btn hidden">ออก</button></div></header><div class="content" id="app"></div></main></div><div class="modalback" id="modalback"><div class="modal" id="modal"></div></div><div id="toast" class="toast hidden"></div>
 <script>
 'use strict';
