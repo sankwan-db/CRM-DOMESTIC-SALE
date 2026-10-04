@@ -113,6 +113,57 @@
 .weekly-matrix tbody tr:not(.weekly-type-group):hover td{filter:brightness(.98)}
 .weekly-matrix-wrap .tablewrap{height:calc(100vh - 300px)}
 .weekly-matrix-wrap.table-expanded .tablewrap{height:calc(100% - 72px)}
+
+/* Weekly plan table: freeze only Sale and the rightmost total Plan/Actual columns. */
+.weekly-matrix-wrap{overflow:hidden;border:1px solid #dfe6f1;border-radius:12px;background:#fff;box-shadow:0 8px 24px #17224f0b}
+.weekly-matrix-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 16px;background:#fbfcff;border-bottom:1px solid var(--line)}
+.weekly-matrix-heading h3{margin:0 0 3px;color:var(--navy);font-size:15px}
+.weekly-matrix-wrap .weekly-table-scroll{max-height:calc(100vh - 350px);min-height:270px;overflow:auto;border-radius:0}
+.weekly-matrix{min-width:2466px;width:2466px;table-layout:fixed;border-collapse:separate;border-spacing:0}
+.weekly-matrix th,.weekly-matrix td{white-space:nowrap;text-align:center;box-sizing:border-box;height:40px;padding:7px 8px;border-right:1px solid #edf0f5;border-bottom:1px solid #e8edf4}
+.weekly-matrix thead th{position:sticky;top:0;z-index:5;height:42px;background:#eaf0f8;color:#425576;font-weight:600;box-shadow:0 1px 0 #dce4f0}
+.weekly-matrix thead tr:nth-child(2) th{top:42px;height:34px;z-index:5;background:#e2eaf7}
+.weekly-matrix thead tr:nth-child(3) th{top:76px;height:32px;z-index:5;background:#f5f7fb}
+.weekly-matrix thead tr:first-child th:nth-child(-n+4){left:auto;z-index:5}
+.weekly-matrix thead tr:first-child th:nth-child(1).pin-sale{left:0;z-index:10}
+.weekly-matrix thead tr:first-child th:nth-child(2),.weekly-matrix thead tr:first-child th:nth-child(3),.weekly-matrix thead tr:first-child th:nth-child(4){left:auto;z-index:5}
+.weekly-matrix tbody td:nth-child(-n+4){position:static;left:auto;z-index:auto;background:inherit}
+.weekly-matrix tbody td.pin-sale{position:sticky;left:0;z-index:4;width:105px;min-width:105px;max-width:105px;background:#f2f5fa}
+.weekly-matrix tbody tr:nth-child(even) td{background-color:#fbfcfe}
+.weekly-matrix tbody tr:nth-child(even) td.actual-cell{background:#f1faf6}
+.weekly-matrix tbody tr.weekly-type-group th{height:36px;background:#eaf0f8;text-align:left;font-weight:700}
+.weekly-matrix tbody tr.weekly-type-group td{background:#f4f7fc}
+.weekly-matrix td.weekly-category{text-align:left;white-space:normal}
+.weekly-category b,.weekly-category small{display:block}
+.weekly-category small{margin-top:3px;color:var(--muted);font-size:10px}
+.weekly-matrix td.weekly-customer{text-align:left;white-space:normal}
+.weekly-matrix td.pin-sale,.weekly-matrix thead th.pin-sale{width:105px;min-width:105px;max-width:105px;text-align:center}
+.weekly-matrix .weekly-total-plan,.weekly-matrix .weekly-total-actual{position:sticky;z-index:7;font-weight:700;background:#edf2fa}
+.weekly-matrix .weekly-total-actual{right:0;color:#17664c;background:#eef8f3}
+.weekly-matrix .weekly-total-plan{right:112px;color:#25375e}
+.weekly-matrix thead .weekly-total-plan,.weekly-matrix thead .weekly-total-actual{z-index:11;background:#e4eaf5}
+.weekly-matrix tfoot .weekly-total-plan,.weekly-matrix tfoot .weekly-total-actual{z-index:9}
+.weekly-matrix .actual-head,.weekly-matrix td.actual-cell{background:#eef8f3;color:#17664c}
+.weekly-matrix .plan-head{background:#fff5e5;color:#795716}
+.weekly-matrix .plan-contact{background:#fff7e8;color:#805b16}
+.weekly-matrix .plan-spot{background:#f2efff;color:#5d4b91}
+.weekly-matrix .weekly-plan-edit{padding:3px}
+.weekly-matrix tfoot th,.weekly-matrix tfoot td{position:sticky;bottom:0;z-index:4;background:#eaf0f8;font-weight:700;box-shadow:0 -1px 0 #d9e2ef}
+.weekly-matrix tfoot tr.weekly-forecast-row th,.weekly-matrix tfoot tr.weekly-forecast-row td{bottom:0;background:#f5f7fb;z-index:5}
+.weekly-matrix .weekly-summary-row th:first-child,.weekly-matrix .weekly-forecast-row th:first-child{position:sticky;left:auto;z-index:5;text-align:left;background:#eef3fb}
+.weekly-matrix .weekly-forecast-row .forecast-cell{background:#fff3c4;color:#805b16}
+.weekly-edit-actions{display:flex;gap:4px;align-items:center;justify-content:center}
+.weekly-edit-btn{min-width:66px;padding:4px 6px;background:#fff;border-color:#dce3ef;color:#334a77}
+.weekly-edit-btn:hover{background:#fff3e0;border-color:#e6bd68}
+.weekly-plan-input-row{display:flex;align-items:center;justify-content:center;gap:3px;margin:0}
+.weekly-plan-inline{width:65px;height:29px;padding:3px 5px;text-align:right;border:1px solid #e6bd68;border-radius:6px;background:#fff;color:#18264d;font:inherit;font-size:12px}
+.weekly-plan-inline:focus{outline:2px solid #ffb94f;outline-offset:1px}
+.weekly-plan-input-row small{font-size:9px;color:#7d8ba8}
+.weekly-matrix-wrap.is-expanded{position:fixed;z-index:25;top:82px;right:12px;bottom:12px;left:256px;margin:0;display:flex;flex-direction:column;box-shadow:0 18px 70px #111a3d40}
+.layout.sidehide .weekly-matrix-wrap.is-expanded{left:82px}
+.weekly-matrix-wrap.is-expanded .weekly-table-scroll{flex:1;min-height:0;max-height:none}
+@media(max-width:950px){.weekly-matrix-wrap.is-expanded{left:82px}}
+@media(max-width:650px){.weekly-matrix-wrap.is-expanded{top:76px;left:8px;right:8px;bottom:8px}.weekly-matrix-heading{align-items:flex-start;flex-direction:column}.weekly-matrix-wrap .weekly-table-scroll{max-height:60vh}}
 </style></head><body><div class="layout" id="layout"><aside class="sidebar"><div class="brand"><div class="brandmark">S</div><div class="brandtext"><b>CRM</b><small>DOMESTIC SALE</small></div></div><div class="navlabel">SALES EXECUTION</div><nav class="nav" id="nav"></nav><div class="userbox"><span id="connectionLabel">● ยังไม่เชื่อมต่อฐานข้อมูล</span><button class="btn small" style="float:right" id="toggleSide">‹</button></div></aside><main class="main"><header class="top"><div><div class="crumb">CRM / DOMESTIC SALE</div><h1 id="topTitle">Dashboard</h1></div><div class="topright"><button id="refreshData" class="btn" title="ดึงข้อมูลล่าสุดจาก Google Sheet">↻ รีเฟรชข้อมูล</button><span id="whoami" class="pill">ยังไม่ได้เข้าสู่ระบบ</span><button id="signin" class="btn primary">เชื่อมต่อ Google Sheet</button><button id="signout" class="btn hidden">ออก</button></div></header><div class="content" id="app"></div></main></div><div class="modalback" id="modalback"><div class="modal" id="modal"></div></div><div id="toast" class="toast hidden"></div>
 <script>
 'use strict';
