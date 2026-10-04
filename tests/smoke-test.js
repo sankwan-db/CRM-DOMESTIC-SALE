@@ -6,7 +6,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const app = fs.readFileSync(path.join(root, 'app-v2.js'), 'utf8');
-assert.match(html, /app-v2\.js\?v=weekly-plan-fix-20261004-10/, 'GitHub Pages cache key is refreshed for weekly plan fixes');
+assert.match(html, /app-v2\.js\?v=weekly-plan-fix-20261004-11/, 'GitHub Pages cache key is refreshed for weekly plan fixes');
 assert.doesNotMatch(html, /M_PRODUCT_GROUP:'G'/, 'Google Sheets loader does not request unused M_PRODUCT_GROUP');
 assert.match(html, /T_WEEKLY_CUSTOMER_PLAN:'Y'/, 'Google Sheets loader reads Group Product fields on weekly plans');
 assert.match(app, /HEAD\[TAB\.weeklyPlans\]=\[\.\.\.HEAD\[TAB\.weeklyPlans\],'Plan_Type','Contact_Completed','Product_Type','PART','SUB_PART'/, 'Weekly plans persist at Product Type/PART/SUB-PART grain');
@@ -18,9 +18,17 @@ assert.match(app,/data-weekly-expand[\s\S]*?ย่อกลับ/,'Weekly matri
 assert.match(app,/data-week-edit[\s\S]*?แก้ไขคิว/,'Weekly matrix retains per-plan schedule edit controls');
 assert.match(app,/function targetActualMatches[\s\S]*function targetActualQty[\s\S]*?actualQtyMT/,'Target performance maps imported actuals to plan dimensions');
 assert.match(app,/function saleTargetActualTable[\s\S]*% Sales เทียบเป้า/,'Dashboard compares Sale target against actual sales');
+const dashboardSource=app.slice(app.indexOf('function dashboard(){'),app.indexOf('function detailDimensions'));
+const detailSource=app.slice(app.indexOf('function dashDetailView'),app.indexOf('function barChart'));
+assert.match(dashboardSource,/target-coverage-card/,'Team target/allocated/Actual hierarchy uses full Dashboard width');
+assert.doesNotMatch(dashboardSource,/ยอดขาย Actual ล่าสุด/,'Latest Actual table is removed from Dashboard summary');
+assert.match(dashboardSource,/dashView==='detail'\?dashDetailView/,'Dashboard detail tree is rendered only when its tab is selected');
+assert.match(detailSource,/ยอดขาย Actual ล่าสุด[\s\S]*actualTable/,'Latest Actual table is placed in Detail tab');
+assert.match(app,/targetActualIndexCache/,'Actual-to-target matching is indexed to avoid repeated full-sheet scans');
+
 assert.doesNotMatch(app,/uniqueChannelRows/,'No unresolved uniqueChannelRows reference remains');
 assert.match(app,/function render\(\)[\s\S]*?dashboard\(\)/,'Dashboard route renders through the current app version');
-assert.match(html,/weekly-plan-fix-20261004-10/,'HTML activates the latest CRM dashboard script');
+assert.match(html,/weekly-plan-fix-20261004-11/,'HTML activates the latest CRM dashboard script');
 assert.match(html,/modalback\.open\{z-index:10050!important\}/,'Weekly editor modal renders above frozen table headers');
 assert.match(html,/tfoot th,\.weekly-matrix tfoot td\{position:static!important/,'Weekly summary footer does not cover data rows');
 assert.match(app, /function downloadWeeklyPlanTemplate[\s\S]*CRM_Weekly_Customer_Plan_Template\.xlsx/, 'Weekly Plan provides an Excel template');
