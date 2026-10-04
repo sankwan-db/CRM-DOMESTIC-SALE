@@ -55,6 +55,8 @@ assert.doesNotMatch(tree, /<th>ปี<\/th>|<th>เดือน<\/th>/, 'Year an
 assert.match(tree, /data-team-detail=/, 'records have a detail popup action');
 assert.match(tree, /data-tree-expand-all[\s\S]*data-tree-collapse-all/, 'hierarchy has Expand All and Collapse All');
 assert.match(app, /function showTeamTargetDetail\(t\)[\s\S]*ปี \/ เดือน[\s\S]*String\(t.Month\)/, 'popup displays target year and month');
+assert.match(app, /function categoryActualInPlanUom\(group,date,uom\)[\s\S]*actualSaleKey\(a\)/, 'weekly actual maps a report row with blank Sale_ID through customer master');
+assert.match(app, /function weeklyActualInPlanUom\(group,date,uom\)[\s\S]*actualSaleKey\(a\)/, 'weekly matrix actual uses customer assigned Sale as fallback');
 assert.match(html, /\.team-target-tree \.hierarchy-row\{min-width:1340px;grid-template-columns:[^}]+\}/, 'hierarchy table columns fit the added management actions');
 
 console.log('Target/dashboard smoke checks passed: date validation, scoped filters, searchable production picker, monthly product filters, named Channel display, target hierarchy, detail popup, and expand/collapse.');
