@@ -458,6 +458,52 @@ body.modal-open{overflow:hidden}
 #app .weekly-matrix tbody tr.weekly-type-group>th:first-child{text-align:left!important}
 #app .weekly-matrix tbody tr.weekly-summary-row>th:first-child{padding-left:12px!important}
 #app .weekly-matrix tbody tr.weekly-summary-row.weekly-spot-total>th:first-child{justify-content:flex-start!important;text-align:left!important}
+/* Weekly plan: primary vertical list, predictable column sizing, and no sticky table columns. */
+#app .weekly-subtabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+#app .weekly-toolbar{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:16px 18px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+#app .weekly-daily-view,#app .weekly-summary-view{display:flex;flex-direction:column;gap:14px;padding:4px 2px 12px}
+#app .weekly-daily-intro{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;padding:10px 2px 2px}
+#app .weekly-daily-intro h3{margin:0 0 5px;color:var(--navy);font-size:18px}
+#app .weekly-daily-intro p{margin:0;color:var(--muted);font-size:13px;line-height:1.6;max-width:980px}
+#app .weekly-daily-controls{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;padding:14px;background:#f7f9fc;border:1px solid #e4eaf3;border-radius:12px}
+#app .weekly-daily-controls label{display:grid;gap:5px;color:#52617f;font-size:12px;font-weight:600}
+#app .weekly-daily-controls input,#app .weekly-daily-controls select{height:40px;min-width:180px}
+#app .weekly-daily-controls .weekly-search-field input{min-width:min(390px,70vw)}
+#app .weekly-daily-table-wrap{width:100%;overflow:auto;border:1px solid #e2e8f1;border-radius:12px;background:#fff;max-height:calc(100vh - 390px);min-height:270px;overscroll-behavior:contain}
+#app .weekly-daily-table,#app .weekly-summary-table{width:100%;min-width:1330px;table-layout:fixed;border-collapse:separate;border-spacing:0}
+#app .weekly-daily-table th,#app .weekly-summary-table th{position:static!important;left:auto!important;right:auto!important;top:auto!important;z-index:auto!important;text-align:center;vertical-align:middle;white-space:normal;line-height:1.35;padding:12px 9px;background:#f1f5fa;color:#3c4e70;border-bottom:1px solid #dfe6f0}
+#app .weekly-daily-table td,#app .weekly-summary-table td{position:static!important;left:auto!important;right:auto!important;z-index:auto!important;padding:10px 9px;vertical-align:middle;border-bottom:1px solid #edf0f5;line-height:1.4;white-space:normal}
+#app .weekly-daily-table tbody tr:nth-child(even),#app .weekly-summary-table tbody tr:nth-child(even){background:#fbfcfe}
+#app .weekly-daily-table tbody tr:hover,#app .weekly-summary-table tbody tr:hover{background:#f5f8fd}
+#app .weekly-daily-table td:first-child{white-space:nowrap;text-align:center;font-variant-numeric:tabular-nums}
+#app .weekly-daily-table td small{display:block;margin-top:3px;color:#75829a;font-size:11px;line-height:1.35}
+#app .weekly-daily-table .cell-left,#app .weekly-summary-table .cell-left{text-align:left}
+#app .weekly-daily-table .numeric,#app .weekly-summary-table .numeric{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+#app .weekly-daily-table .percent,#app .weekly-summary-table .percent{text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+#app .weekly-daily-table .unit-label{display:inline;color:#74819a;font-size:11px}
+#app .plan-type-pill{display:inline-flex;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+#app .plan-type-pill.contact{background:#fff0f1;color:#a84050}
+#app .plan-type-pill.spot{background:#eef4ff;color:#385b99}
+#app .weekly-pagebar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;color:#61708b;font-size:13px}
+#app .weekly-pagebar>div{display:flex;align-items:center;gap:10px}
+#app .weekly-summary-cards{display:grid;grid-template-columns:repeat(6,minmax(130px,1fr));gap:10px}
+#app .weekly-summary-cards>div{display:grid;gap:6px;padding:14px 16px;border:1px solid #e3e9f2;border-radius:12px;background:#fff;box-shadow:0 4px 14px #17224f08}
+#app .weekly-summary-cards small{color:#6c7891;font-size:12px}
+#app .weekly-summary-cards b{color:#1d2b54;font-size:17px;font-variant-numeric:tabular-nums}
+#app .weekly-summary-table{min-width:1550px}
+/* The optional matrix can scroll both ways; there are no frozen identity, summary, or total cells. */
+#app .weekly-matrix thead th{position:sticky!important;left:auto!important;right:auto!important;z-index:5!important;box-shadow:0 1px 0 #dce4f0}
+#app .weekly-matrix thead tr:first-child th:nth-child(-n+4),#app .weekly-matrix thead tr:first-child th:nth-child(1).pin-sale,#app .weekly-matrix thead tr:first-child th:nth-child(n+1){left:auto!important;right:auto!important}
+#app .weekly-matrix tbody td,#app .weekly-matrix tbody th,#app .weekly-matrix tfoot th{position:static!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;z-index:auto!important;box-shadow:none!important}
+#app .weekly-matrix tbody tr.weekly-summary-row th:first-child,#app .weekly-matrix tbody tr.weekly-forecast-row th:first-child{position:static!important;left:auto!important;z-index:auto!important}
+#app .weekly-matrix tbody tr.weekly-contact-total>*{position:static!important;left:auto!important;top:auto!important;z-index:auto!important}
+/* Eight target columns: dimensions, four amount measures, two percentages, and management actions. */
+#app .team-target-tree .hierarchy-row{min-width:1560px!important;grid-template-columns:minmax(285px,2fr) repeat(4,minmax(125px,.95fr)) repeat(2,minmax(105px,.8fr)) minmax(250px,1.8fr)!important;gap:10px!important}
+#app .team-target-tree .hierarchy-row>span.target-metric{text-align:right!important;font-variant-numeric:tabular-nums;white-space:nowrap}
+#app .team-target-tree .hierarchy-row>span.target-percent{text-align:center!important;justify-content:center}
+#app .team-target-tree .hierarchy-row>span:last-child{display:flex;justify-content:flex-start;align-items:center;gap:6px;flex-wrap:wrap}
+@media(max-width:1000px){#app .weekly-summary-cards{grid-template-columns:repeat(3,minmax(130px,1fr))}}
+@media(max-width:620px){#app .weekly-summary-cards{grid-template-columns:repeat(2,minmax(120px,1fr))}#app .weekly-daily-controls{align-items:stretch}#app .weekly-daily-controls label,#app .weekly-daily-controls input,#app .weekly-daily-controls select{width:100%;min-width:0}}
 </style></head><body><div class="layout" id="layout"><aside class="sidebar"><div class="brand"><div class="brandmark">S</div><div class="brandtext"><b>CRM</b><small>DOMESTIC SALE</small></div></div><div class="navlabel">SALES EXECUTION</div><nav class="nav" id="nav"></nav><div class="userbox"><span id="connectionLabel">● ยังไม่เชื่อมต่อฐานข้อมูล</span><button class="btn small" style="float:right" id="toggleSide">‹</button></div></aside><main class="main"><header class="top"><div><div class="crumb">CRM / DOMESTIC SALE</div><h1 id="topTitle">Dashboard</h1></div><div class="topright"><button id="refreshData" class="btn" title="ดึงข้อมูลล่าสุดจาก Google Sheet">↻ รีเฟรชข้อมูล</button><span id="whoami" class="pill">ยังไม่ได้เข้าสู่ระบบ</span><button id="signin" class="btn primary">เชื่อมต่อ Google Sheet</button><button id="signout" class="btn hidden">ออก</button></div></header><div class="content" id="app"></div></main></div><div class="modalback" id="modalback"><div class="modal" id="modal"></div></div><div id="toast" class="toast hidden"></div>
 <script>
 'use strict';
@@ -529,4 +575,4 @@ function setupPage(){return pageHead('ตั้งค่าการเชื่
 function render(){if(!$('#app'))return;if(!token){$('#app').innerHTML=page==='setup'?setupPage():pageHead('CRM Domestic Sale','เชื่อมต่อบัญชี Google ที่มีสิทธิ์แก้ไข Google Sheet เพื่อเริ่มใช้งาน')+`<div class="card"><div class="empty">ระบบเก็บข้อมูลบน Google Sheet ของคุณ<br>กดปุ่มเชื่อมต่อที่มุมขวาบน แล้วเลือกบัญชี Gmail ที่ได้รับสิทธิ์ Editor</div></div>`;return}if(page==='dashboard')$('#app').innerHTML=dashboard();if(page==='targets')$('#app').innerHTML=targetsPage();if(page==='import')$('#app').innerHTML=importPage();if(page==='actions')$('#app').innerHTML=actionPage();if(page==='master')$('#app').innerHTML=masterPage();bindFilters();$('#app').querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>{targetTab=+b.dataset.tt;render();drawTargets()});if(page==='targets'){drawTargets();$('#tshow').onclick=drawTargets;['tyear','tmonth','tchannel'].forEach(x=>$('#'+x).onchange=drawTargets)}if(page==='actions'){$('#newAction').onclick=()=>actionForm();$('#app').querySelectorAll('[data-at]').forEach(b=>b.onclick=()=>{actTab=b.dataset.at;render()});drawActions()}if(page==='import'){ $('#previewImport').onclick=previewImport;$('#downloadImportTemplate').onclick=()=>downloadTemplate();$('#exportActual').onclick=()=>exportRows(rows('actuals'),'T_SALES_ACTUAL')}if(page==='master'){$('#app').querySelectorAll('[data-mtab]').forEach(b=>b.onclick=()=>{mtab=b.dataset.mtab;render();drawMaster()});drawMaster()}$('#exportDashboard')?.addEventListener('click',()=>exportRows(currentFiltered(),'Dashboard_Actual'))}
 function downloadTemplate(){let wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([['Sales_Date','Item_Code','Customer_Code','Plan_Type','Qty','UOM'],[today(),'ITEM-001','CUST-001','Contact',1000,'KG']]);ws['!cols']=[{wch:14},{wch:18},{wch:18},{wch:14},{wch:12},{wch:10}];XLSX.utils.book_append_sheet(wb,ws,'Sales Import');let guide=XLSX.utils.aoa_to_sheet([['คอลัมน์','วิธีกรอก'],['Sales_Date','วันที่ขายจริง ใช้ match กับ Plan_Date'],['Item_Code','รหัสสินค้าต้องมีใน M_ITEM'],['Customer_Code','รหัสลูกค้าต้องมีใน M_CUSTOMER'],['Plan_Type','ระบุ Contact หรือ Spot เพื่อจัดประเภทยอดขายจริงขั้นสุดท้ายให้ตรงกับแผน'],['Qty','จำนวนขายตาม UOM ในแถวนี้'],['UOM','หน่วยขายของ Item ต้องมี Conversion ใน M_ITEM_UOM'],['หมายเหตุ','Contact วัด 2 ขั้น: รับ Order ล่วงหน้าบันทึกใน Action Plan รายสัปดาห์ และยอดขายจริงขั้นสุดท้ายบันทึกในรายงานนี้ โดยแยก Plan_Type Contact'],['หมายเหตุเพิ่มเติม','กรณีวัน/ลูกค้า/กลุ่มสินค้าเดียวกันมีทั้ง Contact และ Spot ให้แยกบรรทัดขายตามประเภทแผน ห้ามใส่ยอดเดียวกันซ้ำสองประเภท']]);XLSX.utils.book_append_sheet(wb,guide,'Instructions');XLSX.writeFile(wb,'CRM_Domestic_Sales_Import_Template.xlsx')}
 drawNav();go('dashboard');
-</script><script src="app-v2.js?v=crm-contact-order-entry-20261004-14"></script></body></html>
+</script><script src="app-v2.js?v=weekly-vertical-product-summary-20261004-15"></script></body></html>
