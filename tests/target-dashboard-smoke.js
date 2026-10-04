@@ -60,5 +60,9 @@ assert.match(app, /function weeklyActualInPlanUom\(group,date,uom\)[\s\S]*actual
 assert.match(app, /function weeklyActualPlanSaleMatch\(a,saleId\)[\s\S]*return !assigned\|\|String\(assigned\)===String\(saleId\)/, 'weekly actual rows without Sale_ID can match by customer and item/date');
 assert.match(app, /weeklyActualFilterRow\(a,group.Sale_ID\)/, 'weekly filters use the planned Sale when imported Sale_ID and customer assignment are blank');
 assert.match(html, /\.team-target-tree \.hierarchy-row\{min-width:1340px;grid-template-columns:[^}]+\}/, 'hierarchy table columns fit the added management actions');
+assert.match(app, /weekly-total-plan[^]*weekly-total-actual[^]*% Coverage[^]*ปรับ Plan/, 'weekly summary columns follow Plan, Actual, Coverage, Adjust Plan');
+assert.match(app, /function openWeeklyEdit\(o\)[^]*weeklyGroupKey\(x\)===key[^]*openWeeklyEditor/, 'Edit Plan loads every date and plan type for the selected customer/product group');
+assert.match(app, /weekly-contact-total/, 'weekly matrix keeps a distinct Contact Total row');
+assert.match(html, /weekly-contact-total>th:first-child[^]*left:0[^]*wf-identity-width/, 'Contact Total label stays aligned with the frozen identity columns through Sale');
 
 console.log('Target/dashboard smoke checks passed: date validation, scoped filters, searchable production picker, monthly product filters, named Channel display, target hierarchy, detail popup, and expand/collapse.');
