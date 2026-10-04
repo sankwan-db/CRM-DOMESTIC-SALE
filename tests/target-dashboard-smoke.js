@@ -69,6 +69,59 @@ assert.match(targetTreeFn, /channelNameForTarget\(t.Channel\)\)\+'<\/span>/, 'ta
 assert.doesNotMatch(targetTreeFn, /channelNameForTarget\(t.Channel\).*Group Product|channelNameForTarget\(t.Channel\).*SUB-PART/, 'target leaf does not repeat SUB-PART or Group Product after Channel');
 assert.match(html, /hierarchy-table tr\.hierarchy-data-row\{display:table-row/, 'hierarchy rows retain native table column alignment');
 assert.match(html, /weekly-summary-row\.weekly-spot-total>th:first-child\{justify-content:flex-start!important;text-align:left!important\}/, 'Contact and Spot summary labels stay left aligned consistently');
+assert.match(html, /T_SALES_ACTUAL:\[[^\]]*'Plan_Type'\]/, 'Actual import schema contains Plan_Type');
+assert.match(html, /planTypeK=find\('Plan_Type','Plan Type','ประเภทแผน'\)[\s\S]*!planTypeK/, 'Actual import requires the Plan_Type column');
+assert.match(html, /Plan_Type:x\.planType/, 'Actual import persists the row Plan_Type');
+assert.match(html, /\['Sales_Date','Item_Code','Customer_Code','Plan_Type','Qty','UOM'\]/, 'Actual import template includes Plan_Type');
+assert.match(app, /'Contact_Order_Qty','Contact_Order_Date'/, 'weekly plan schema stores Contact order receipt separately');
+assert.match(app, /data-w-order-qty[\s\S]*data-w-order-date/, 'weekly plan editor can record received Contact order and date');
+assert.match(app, /Contact_Order_Qty:'',Contact_Order_Date:''/, 'cloning last week clears the previous Contact order milestone');
+assert.match(app, /weeklyActualPlanTypeMatch\(a,group,date\)/, 'weekly actual matching scopes sales to the selected plan type');
+assert.match(app, /รับ Order[\s\S]*ขายจริง/, 'weekly Contact view displays order receipt separately from final sales actual');
+
+const typeMatchCode = app.slice(app.indexOf('function normalizeWeeklyPlanType('), app.indexOf('function categoryActualInPlanUom(', app.indexOf('function normalizeWeeklyPlanType(')));
+const matchCtx = {
+  actualSaleKey: a => a.Sale_ID || '',
+  rows: name => name === 'weeklyPlans' ? matchCtx.weeklyPlans : name === 'items' ? matchCtx.items : [],
+  weeklyPlans: [], items: [],
+  weeklyPlanDateKey: x => x,
+  weeklyActualPlanSaleMatch: (a, saleId) => !a.Sale_ID || a.Sale_ID === saleId
+};
+vm.runInNewContext(typeMatchCode + '\nthis.typeMatch=weeklyActualPlanTypeMatch;', matchCtx);
+const typeGroup = {Plan_Type:'Contact',Sale_ID:'S1',Customer_Code:'C1',Product_Type:'TYPE',PART:'PART',SUB_PART:'SUB'};
+assert.equal(matchCtx.typeMatch({Plan_Type:'Contact'},typeGroup,'2026-10-05'), true, 'Contact actual maps only to Contact plan');
+assert.equal(matchCtx.typeMatch({Plan_Type:'Spot'},typeGroup,'2026-10-05'), false, 'Spot actual is not counted as Contact');
+matchCtx.weeklyPlans = [
+  {Data_Status:'LIVE',Plan_Date:'2026-10-05',Customer_Code:'C1',Sale_ID:'S1',Plan_Type:'Contact',Product_Type:'TYPE',PART:'PART',SUB_PART:'SUB'},
+  {Data_Status:'LIVE',Plan_Date:'2026-10-05',Customer_Code:'C1',Sale_ID:'S1',Plan_Type:'Spot',Product_Type:'TYPE',PART:'PART',SUB_PART:'SUB'}
+];
+assert.equal(matchCtx.typeMatch({},typeGroup,'2026-10-05'), false, 'untyped historical sales are not ambiguously attributed when both types are planned');
+matchCtx.weeklyPlans.pop();
+assert.equal(matchCtx.typeMatch({},typeGroup,'2026-10-05'), true, 'untyped historical sales can map when only one plan type exists');
+const weeklyActualStart = app.indexOf('function normalizeWeeklyPlanType(');
+const weeklyActualEnd = app.indexOf('function weeklyPlanTable(', weeklyActualStart);
+const actualRows = [
+  {Data_Status:'LIVE',Sales_Date:'2026-10-05',Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Plan_Type:'Contact',UOM:'KG',Qty:4,Qty_KG:4},
+  {Data_Status:'LIVE',Sales_Date:'2026-10-05',Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Plan_Type:'Spot',UOM:'KG',Qty:7,Qty_KG:7}
+];
+const actualCtx = {
+  actualSaleKey:a=>a.Sale_ID,
+  rows:name=>name==='weeklyPlans'?matchCtx.weeklyPlans:name==='items'?matchCtx.items:name==='actuals'?actualRows:[],
+  weeklyActualPlanSaleMatch:()=>true,weeklyActualFilterRow:a=>a,passesWeeklyPlanFilters:()=>true,
+  weeklyPlanDateKey:x=>x,normDate:x=>x,actualUomConversion:()=>({factor:1}),itemFactorInUom:()=>1
+};
+matchCtx.items=[{Item_Code:'I1',Product_Type:'TYPE',PART:'PART',SUB_PART:'SUB',Base_UOM:'KG'}];
+matchCtx.weeklyPlans=[
+  {Data_Status:'LIVE',Plan_Date:'2026-10-05',Customer_Code:'C1',Sale_ID:'S1',Plan_Type:'Contact',Product_Type:'TYPE',PART:'PART',SUB_PART:'SUB'},
+  {Data_Status:'LIVE',Plan_Date:'2026-10-05',Customer_Code:'C1',Sale_ID:'S1',Plan_Type:'Spot',Product_Type:'TYPE',PART:'PART',SUB_PART:'SUB'}
+];
+vm.runInNewContext(app.slice(weeklyActualStart,weeklyActualEnd)+'\nthis.weekActual=weeklyActualInPlanUom;',actualCtx);
+assert.equal(actualCtx.weekActual({...typeGroup,Item_Code:'I1'},'2026-10-05','KG').qty,4,'Contact weekly Actual totals only Contact-classified sales');
+assert.equal(actualCtx.weekActual({...typeGroup,Plan_Type:'Spot',Item_Code:'I1'},'2026-10-05','KG').qty,7,'Spot weekly Actual totals only Spot-classified sales');
+assert.match(app, /data-week-subview="orders"[\s\S]*บันทึก Order Contact/, 'weekly plan menu has a separate Contact order-entry view');
+assert.match(app, /function contactOrderTable\(week\)[\s\S]*contactOrderCustomer[\s\S]*data-contact-order-qty[\s\S]*data-contact-order-date/, 'Contact order entry selects week/customer and lists planned daily rows');
+assert.match(app, /function saveContactOrders\(\)[\s\S]*Contact_Order_Qty:qtyText[\s\S]*Contact_Completed:qtyText\?1:0/, 'Contact order quantities and completion are saved as their own milestone');
+assert.match(app, /Contact_Order_Qty','Contact_Order_Date/, 'weekly plan Excel includes Contact order receipt fields');
 assert.match(app, /target-metric[\s\S]*target-percent/, 'target hierarchy separates numeric weight values from percentage cells');
 assert.match(html, /target-metric\{text-align:right!important[\s\S]*target-percent\{text-align:center!important/, 'target table amounts align right and percentage cells center');
 assert.match(app, /weekly-contact-total/, 'weekly matrix keeps a distinct Contact Total row');
