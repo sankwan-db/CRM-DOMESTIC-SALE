@@ -68,6 +68,9 @@ const targetTreeFn = app.slice(app.lastIndexOf('function teamTargetTable(data){'
 assert.match(targetTreeFn, /channelNameForTarget\(t.Channel\)\)\+'<\/span>/, 'target leaf row shows the Channel name');
 assert.doesNotMatch(targetTreeFn, /channelNameForTarget\(t.Channel\).*Group Product|channelNameForTarget\(t.Channel\).*SUB-PART/, 'target leaf does not repeat SUB-PART or Group Product after Channel');
 assert.match(html, /hierarchy-table tr\.hierarchy-data-row\{display:table-row/, 'hierarchy rows retain native table column alignment');
+assert.match(html, /weekly-summary-row\.weekly-spot-total>th:first-child\{justify-content:flex-start!important;text-align:left!important\}/, 'Contact and Spot summary labels stay left aligned consistently');
+assert.match(app, /target-metric[\s\S]*target-percent/, 'target hierarchy separates numeric weight values from percentage cells');
+assert.match(html, /target-metric\{text-align:right!important[\s\S]*target-percent\{text-align:center!important/, 'target table amounts align right and percentage cells center');
 assert.match(app, /weekly-contact-total/, 'weekly matrix keeps a distinct Contact Total row');
 assert.match(html, /weekly-contact-total>th:first-child[^]*left:0[^]*wf-identity-width/, 'Contact Total label stays aligned with the frozen identity columns through Sale');
 
