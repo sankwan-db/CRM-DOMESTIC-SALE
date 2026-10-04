@@ -6,13 +6,16 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const app = fs.readFileSync(path.join(root, 'app-v2.js'), 'utf8');
-assert.match(html, /app-v2\.js\?v=weekly-plan-fix-20261004-04/, 'GitHub Pages cache key is refreshed for weekly plan fixes');
+assert.match(html, /app-v2\.js\?v=weekly-plan-fix-20261004-05/, 'GitHub Pages cache key is refreshed for weekly plan fixes');
 assert.doesNotMatch(html, /M_PRODUCT_GROUP:'G'/, 'Google Sheets loader does not request unused M_PRODUCT_GROUP');
 assert.match(html, /T_WEEKLY_CUSTOMER_PLAN:'Y'/, 'Google Sheets loader reads Group Product fields on weekly plans');
 assert.match(app, /HEAD\[TAB\.weeklyPlans\]=\[\.\.\.HEAD\[TAB\.weeklyPlans\],'Plan_Type','Contact_Completed','Product_Type','PART','SUB_PART'/, 'Weekly plans persist at Product Type/PART/SUB-PART grain');
 assert.match(app, /delete TAB\.productGroups[\s\S]*delete HEAD\.M_PRODUCT_GROUP/, 'Product groups use M_GROUP_PRODUCT without loading M_PRODUCT_GROUP');
 assert.match(app, /async function clonePreviousWeek\(\)[\s\S]*?shifted=source\.map[\s\S]*?openWeeklyEditor\(week,'',shifted\)/, 'Pulling the prior week copies all saved plans without requiring Sale selection');
 assert.match(app, /data-w-sale[\s\S]*customer\?\.Assigned_Sale_ID/, 'Weekly plan selects Sale per customer from Customer Master');
+assert.equal((app.match(/function weeklyPlanTable\\(list\\)\\{/g)||[]).length,1,'Only one weekly plan table renderer is active');
+assert.match(app,/data-weekly-expand[\\s\\S]*?ย่อกลับ/,'Weekly matrix has a visible expand/collapse control');
+assert.match(app,/data-week-edit[\\s\\S]*?แก้ไขคิว/,'Weekly matrix retains per-plan schedule edit controls');
 assert.match(app, /function downloadWeeklyPlanTemplate[\s\S]*CRM_Weekly_Customer_Plan_Template\.xlsx/, 'Weekly Plan provides an Excel template');
 assert.match(app, /function exportWeeklyPlanExcel[\s\S]*Weekly_Plan_/, 'Weekly Plan supports Excel export');
 assert.match(app, /function importWeeklyPlanExcel[\s\S]*prepareWeeklyPlanImport/, 'Weekly Plan supports validated Excel import');
@@ -58,7 +61,7 @@ ctx.db = {
   targets: [{Target_ID:'A1',Year:2026,Month:10,Channel:'Market',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Sale_ID:'S1',Target_MT:10,Data_Status:'LIVE'}]
 };
 let source = app.replace(/drawNav\(\);go\('dashboard'\);/g, '');
-source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,weeklyPlanTable,passesWeeklyPlanFilters,normalizeWeeklyKey,filterState,categoryActualInPlanUom,contactAcceptancePct,actionRowV2,actionCard,calendarMonth,groupUomOptions,customerLovOptionsForGroup,priorWeeklyMetrics,prepareWeeklyPlanImport};';
+source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,weeklyPlanTable,passesWeeklyPlanFilters,normalizeWeeklyKey,weeklyPlanDateKey,weeklyActualInPlanUom,filterState,categoryActualInPlanUom,contactAcceptancePct,actionRowV2,actionCard,calendarMonth,groupUomOptions,customerLovOptionsForGroup,priorWeeklyMetrics,prepareWeeklyPlanImport};';
 vm.runInNewContext(source, ctx, {filename:'app-v2.js'});
 const api = ctx.crmTestApi;
 assert.equal(api.selfCheck.bad.length, 0, 'built-in date/UOM checks pass');
