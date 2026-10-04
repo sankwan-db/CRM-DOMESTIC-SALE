@@ -6,7 +6,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const app = fs.readFileSync(path.join(root, 'app-v2.js'), 'utf8');
-assert.match(html, /app-v2\.js\?v=weekly-plan-fix-20261004-06/, 'GitHub Pages cache key is refreshed for weekly plan fixes');
+assert.match(html, /app-v2\.js\?v=weekly-plan-fix-20261004-07/, 'GitHub Pages cache key is refreshed for weekly plan fixes');
 assert.doesNotMatch(html, /M_PRODUCT_GROUP:'G'/, 'Google Sheets loader does not request unused M_PRODUCT_GROUP');
 assert.match(html, /T_WEEKLY_CUSTOMER_PLAN:'Y'/, 'Google Sheets loader reads Group Product fields on weekly plans');
 assert.match(app, /HEAD\[TAB\.weeklyPlans\]=\[\.\.\.HEAD\[TAB\.weeklyPlans\],'Plan_Type','Contact_Completed','Product_Type','PART','SUB_PART'/, 'Weekly plans persist at Product Type/PART/SUB-PART grain');
