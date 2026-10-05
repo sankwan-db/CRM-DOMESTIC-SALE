@@ -48,7 +48,7 @@ const rows = [
  {Target_ID:'T2',_row:4,Year:2026,Month:10,Channel:'DMS-001',Product_Type:'SPECIAL',PART:'BB',SUB_PART:'TRIMMING',Group_Product_Name:'BB TRIMMING',Target_Level:'GROUP_PRODUCT',Plan_MT:25}
 ];
 const tree = ctx.makeTree(rows);
-assert.match(tree, /<th>Product Type<\/th><th>PART<\/th><th>SUB-PART<\/th><th>Group Product<\/th>/, 'flat product dimensions are separate columns');
+assert.match(tree, /<th>Product Type<\/th><th>PART<\/th><th>SUB-PART \/ Group Product<\/th><th>Channel<\/th>/, 'product hierarchy is consolidated into one display column');
 assert.match(tree, /BB TRIMMING/);
 assert.match(tree, /ตลาดสด/, 'Channel code is rendered as its master name');
 assert.doesNotMatch(tree, /<th>ปี<\/th>|<th>เดือน<\/th>/, 'Year and Month are not repeated as table columns');
@@ -138,10 +138,16 @@ assert.match(html, /weekly-contact-total>\*\{position:static!important;left:auto
 assert.match(html, /#app \.hierarchy-table thead th\{position:sticky;top:0;z-index:4/, 'dashboard hierarchy keeps only its header sticky');
 assert.match(html, /#app \.hierarchy-table tfoot th\{position:static!important/, 'dashboard total row scrolls normally');
 assert.match(html, /detail-flat-wrap/, 'product/Sale detail has a bounded flat table');
+assert.match(app, /<th>Product Type<\/th><th>PART<\/th><th>SUB-PART \/ Group Product<\/th><th>เดือน<\/th>/, 'product/Sale detail consolidates SUB-PART and Group Product');
+assert.match(app, /<th>SUB-PART \/ Group Product<\/th><th>Channel<\/th>[\s\S]*dashboard-flat-target-table/, 'dashboard displays only the selected product target level');
+assert.match(html, /table:not\(\.weekly-matrix\) thead th\{ text-align:center/, 'all standard table headers are centered');
+assert.match(html, /tbody td\.num[^}]*text-align:right/, 'numeric table cells are right aligned');
+assert.match(html, /tbody td\.percent[^}]*text-align:center/, 'percentage table cells are centered');
 assert.match(html, /detail-flat-table thead th\{position:sticky;top:0/, 'flat detail header stays visible on scroll');
 assert.ok(html.includes('#app .detail-flat-table td.num,#app .detail-flat-table th.num{text-align:right!important'), 'flat detail measures align right');
 assert.match(app, /function targetCoverage\(team,split,actualRows=rows\('actuals'\)\)[\s\S]*sale-detail-pop[\s\S]*dashboard-flat-target-table/, 'dashboard target rows use flat table with Sale detail dropdown');
 assert.match(app,/function dashDetailView\(actuals,allocations\)[\s\S]*detail-flat-table/,'Dashboard product/Sale detail is rendered as a flat table');
+assert.match(app,/function salesProductTable\(data\)[\s\S]*SUB-PART \/ Group Product[\s\S]*x.Group_Product&&x.Group_Product!=='—'\?x.Group_Product:x.SUB_PART/,'sales detail tables show Group Product when available and otherwise SUB-PART');
 const detailStart=app.indexOf('function detailDimensions('),detailEnd=app.indexOf('function latestActualDetailView(',detailStart);
 const detailFixture={items:[{Item_Code:'I1',Item_Name:'BL Scrap',Product_Type:'SPECIAL',PART:'BL',SUB_PART:'BL SCRAP'}],customers:[{Customer_Code:'C1',Channel:'DMS-001',Assigned_Sale_ID:'S1'}],sales:[{Sale_ID:'S1',Sale_Name:'Sale One',Channel:'DMS-001'}],groupProducts:[]};
 const detailCtx={rows:n=>detailFixture[n]||[],findRowCached:(table,key,value)=>(detailFixture[table]||[]).find(x=>String(x[key])===String(value))||null,groupForTarget:t=>t,targetLevel:t=>t.Target_Level||'SUB_PART',channelUniqueRows:()=>[{Channel_Code:'DMS-001',Channel_Name:'DMS'}],canonicalTargetChannel:x=>String(x||''),actualSaleKey:a=>a.Sale_ID||detailFixture.customers.find(c=>c.Customer_Code===a.Customer_Code)?.Assigned_Sale_ID||'',actualQtyMT:a=>Number(a.Qty_MT||0),normDate:x=>String(x||'').slice(0,10),fmt:(x,d=2)=>Number(x||0).toFixed(d),esc:x=>String(x??''),filterState:{channels:[]},detailChannel:'ALL'};
@@ -196,4 +202,4 @@ const orderRowStart=app.indexOf('function contactOrderEntryRow(');const orderRow
 entryCtx.orders=[{Order_ID:'O1',Plan_ID:'P1',Order_Date:'2026-10-05',Order_Qty:10,Order_UOM:'KG',Order_Type:'PLAN',Data_Status:'LIVE'},{Order_ID:'O2',Plan_ID:'P1',Order_Date:'2026-10-07',Order_Qty:5,Order_UOM:'KG',Order_Type:'EXTRA',Data_Status:'LIVE'}];
 assert.equal(entryCtx.getEntries(planRow).length,2,'one Plan can have multiple received-order dates/quantities');
 
-console.log('Target/dashboard smoke checks passed: date validation, scoped filters, searchable production picker, monthly product filters, flat target tables, Sale dropdown filtering, and detail actions.');
+console.log('Target/dashboard smoke checks passed: date validation, scoped filters, searchable production picker, monthly product filters, consolidated product hierarchy columns, consistent table alignment, flat target tables, Sale dropdown filtering, and detail actions.');
