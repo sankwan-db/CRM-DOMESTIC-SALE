@@ -22,7 +22,10 @@ assert.match(app, /function exportWeeklyPlanExcel[\s\S]*Weekly_Plan_/, 'Weekly P
 assert.match(app, /function importWeeklyPlanExcel[\s\S]*prepareWeeklyPlanImport/, 'Weekly Plan supports validated Excel import');
 assert.match(app, /data-w-prev-metric[\s\S]*?priorWeeklyMetrics/, 'Weekly planning rows show previous-week Plan and Actual context');
 assert.match(app, /data-at="table"[\s\S]*data-at="kanban"[\s\S]*data-at="calendar"/, 'Action tabs are present');
-assert.match(app, /data-action-mode="combined"[\s\S]*แผนรายสัปดาห์ · รวมทั้งหมด/, 'Sales Action provides a combined weekly-plan tab');
+assert.match(app, /data-action-mode="combined"[\s\S]*เป้าหมายย่อยรายสัปดาห์/, 'Sales Action opens on the weekly sub-target view');
+assert.match(app, /id="combinedAddAction"[\s\S]*function actionTypeChoice[\s\S]*data-action-choice="base"[\s\S]*data-action-choice="followup"/, 'A single + Action control routes users to the existing base-plan or Prospect tab');
+assert.match(app, /function weeklyTargetBySale[\s\S]*monthWeeks[\s\S]*Target_MT\|\|0\)\/divisor/, 'Monthly Sale targets are split evenly across the ISO weeks touching each month');
+assert.match(app, /function weeklyTargetSummary[\s\S]*เป้าหมายย่อยรวม[\s\S]*Plan รวม[\s\S]*Actual รวม/, 'Weekly action page compares sub-target, plan, and imported actual');
 assert.match(app, /function combinedWeeklyPlanRows\(week\)[\s\S]*weeklyDailyRows\(week,weekPlans\)[\s\S]*rows\('actions'\)/, 'Combined weekly tab merges base-customer plans and prospect actions');
 assert.match(app, /function combinedWeeklyPlanRows\(week\)[\s\S]*toWeekRange\(week\)[\s\S]*Due_Date/, 'Combined weekly tab scopes follow-up actions to the selected Monday–Sunday week');
 assert.match(app, /data-combined-edit-base[\s\S]*data-combined-edit-action/, 'Combined weekly rows keep separate edit actions for both plan types');
@@ -74,7 +77,7 @@ ctx.db = {
   targets: [{Target_ID:'A1',Year:2026,Month:10,Channel:'Market',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Sale_ID:'S1',Target_MT:10,Data_Status:'LIVE'}]
 };
 let source = app.replace(/drawNav\(\);go\('dashboard'\);/g, '');
-source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,weeklyPlanTable,contactAcceptancePct,actionRowV2,actionCard,calendarMonth,groupUomOptions,customerLovOptionsForGroup,priorWeeklyMetrics,prepareWeeklyPlanImport,combinedWeeklyPlanRows};';
+source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,weeklyPlanTable,contactAcceptancePct,actionRowV2,actionCard,calendarMonth,groupUomOptions,customerLovOptionsForGroup,priorWeeklyMetrics,prepareWeeklyPlanImport,combinedWeeklyPlanRows,weeklyTargetBySale,weeklyTargetSummary,weeklySalePlanTotals,weeklySaleActuals};';
 vm.runInNewContext(source, ctx, {filename:'app-v2.js'});
 const api = ctx.crmTestApi;
 ctx.db.actions = [
@@ -83,7 +86,13 @@ ctx.db.actions = [
   {Action_ID:'ACT-W41',Due_Date:'2026-10-05',Sale_ID:'S1',Customer_Code:'C1',Customer_Type:'EXISTING',Plan_Qty:9,Plan_UOM:'BOX',Status:'OPEN',Data_Status:'LIVE'}
 ];
 ctx.db.weeklyPlans = [{Plan_ID:'WPLAN-W40',Week_Key:'W40/2026',Plan_Date:'2026-09-28',Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Channel:'Market',Plan_Type:'Contact',Plan_Qty:3,Plan_UOM:'BOX',KG_Per_UOM:500,Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Data_Status:'LIVE'}];
+ctx.db.actuals=[{Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Plan_Type:'Contact',Sales_Date:'2026-09-30',Qty_MT:.5,Data_Status:'LIVE'}];
 const combined = api.combinedWeeklyPlanRows('W40/2026');
+assert.equal(api.weeklyTargetBySale('W40/2026').get('S1'),2,'October monthly Sale target is spread evenly over its five ISO weeks; a cross-month week receives one weekly share');
+assert.equal(api.weeklySalePlanTotals('W40/2026').get('S1'),1.5,'Weekly Plan totals combine the base-customer plan in MT');
+assert.equal(api.weeklySaleActuals('W40/2026').get('S1'),0.5,'Weekly Actual totals come from imported sales Actual');
+const weeklySummary=api.weeklyTargetSummary('W40/2026');
+for(const text of ['เป้าหมายย่อยรวม','Plan รวม','Actual รวม','2.000 MT','1.500 MT','0.500 MT'])assert.ok(weeklySummary.includes(text),`weekly summary contains ${text}`);
 assert.equal(combined.length,3,'Combined weekly plan includes base and follow-up rows from selected ISO week only');
 assert.equal(combined.filter(x=>x.kind==='BASE').length,1,'Base-customer weekly Plan is included');
 assert.equal(combined.filter(x=>x.kind==='FOLLOWUP').length,2);
