@@ -161,6 +161,8 @@ assert.equal(productSummary[0].coverage,40,'coverage uses Actual divided by tota
 assert.match(app,/TAB\.contactOrders='T_CONTACT_ORDER'[\s\S]*HEAD\[TAB\.contactOrders\]=\['Order_ID','Plan_ID'[\s\S]*Order_Date[\s\S]*Order_Qty/,'multi-date Contact orders have a dedicated Sheet schema');
 assert.match(app,/function contactOrderEntryRow\([\s\S]*Order_Date\?weeklyPlanDateKey\(entry\.Order_Date\):extra\?'':d[\s\S]*data-contact-order-date[\s\S]*data-contact-order-add/,'planned queue date initializes editable receipt date and add-order action exists');
 assert.match(app,/tabs=\[\.\.\.Object\.keys\(schema\),TAB\.customers,TAB\.prospects,TAB\.actions,TAB\.contactOrders\]/,'new contact-order ledger sheet is created automatically when missing');
+assert.match(app,/HEAD\[TAB\.weeklyPlans\]=\[\.\.\.HEAD\[TAB\.weeklyPlans\],'Plan_Type','Contact_Completed','Product_Type','PART','SUB_PART','Group_Product_ID','Group_Product_Name'\]/,'weekly-plan schema remains within the live A:Y sheet; order receipt detail stays in the separate ledger');
+assert.doesNotMatch(app,/HEAD\[TAB\.weeklyPlans\]=[^\n]*Contact_Order_Qty|HEAD\[TAB\.weeklyPlans\]=[^\n]*Contact_Order_Date/,'contact-order columns are not appended beyond the live weekly-plan grid');
 assert.match(app,/function saveContactOrders\([\s\S]*Order_Type:extra\?'EXTRA':'PLAN'[\s\S]*orderAdds\.push\(updated\)/,'receipt dates and extra order quantities are stored separately from the Plan');
 const entryStart=app.indexOf('function contactOrderEntriesForPlan(');
 const entryEnd=app.indexOf('function contactOrderEntryRow(',entryStart);
