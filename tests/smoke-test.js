@@ -78,7 +78,7 @@ ctx.db = {
   targets: [{Target_ID:'A1',Year:2026,Month:10,Channel:'Market',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Sale_ID:'S1',Target_MT:10,Data_Status:'LIVE'}]
 };
 let source = app.replace(/drawNav\(\);go\('dashboard'\);/g, '');
-source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,weeklyPlanTable,contactAcceptancePct,actionRowV2,actionCard,calendarMonth,groupUomOptions,customerLovOptionsForGroup,priorWeeklyMetrics,prepareWeeklyPlanImport,combinedWeeklyPlanRows,weeklyTargetBySale,weeklyTargetSummary,weeklySalePlanTotals,weeklySaleActuals};';
+source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,weeklyPlanTable,weeklyDailyPlanTable,weeklyProductSummaryTable,contactAcceptancePct,actionRowV2,actionCard,calendarMonth,groupUomOptions,customerLovOptionsForGroup,priorWeeklyMetrics,prepareWeeklyPlanImport,combinedWeeklyPlanRows,weeklyTargetBySale,weeklyTargetSummary,weeklySalePlanTotals,weeklySaleActuals};';
 vm.runInNewContext(source, ctx, {filename:'app-v2.js'});
 const api = ctx.crmTestApi;
 ctx.db.actions = [
@@ -140,6 +140,12 @@ assert.match(pairHtml,/weekly-type-group[\s\S]*Contact[\s\S]*weekly-type-group[\
 assert.match(pairHtml,/Sale 50\.0%/,'Actual is matched to the Contact plan and not counted against Spot');
 assert.match(pairHtml, /<td class="num weekly-total-actual">1\.000<\/td>/, 'Summary Actual is aggregated in Plan UOM across the customer/product group');
 assert.match(pairHtml,/weekly-expand-toggle/,'weekly matrix includes a reversible expand control');
+const weeklyDailyHtml=api.weeklyDailyPlanTable('W40/2026',[weekly]);
+assert.match(weeklyDailyHtml,/สินค้า · SUB-PART \/ GROUP PRODUCT/,'daily plan retains the selected product label');
+assert.doesNotMatch(weeklyDailyHtml,/Demo Item|Special · Leg|<small>Special/,'daily plan hides crossed-out secondary item and category details');
+const weeklyProductHtml=api.weeklyProductSummaryTable('W40/2026',[]);
+assert.doesNotMatch(weeklyProductHtml,/Item ที่รวม|Item ·/,'weekly product summary omits the crossed-out Item aggregation column');
+
 ctx.db.weeklyPlans=[{Week_Key:'W40/2026',Plan_Date:'2026-09-30',Sale_ID:'S1',Customer_Code:'C1',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Plan_Qty:2,Plan_UOM:'BOX',Plan_Type:'Contact',Data_Status:'LIVE'}];
 ctx.db.actuals=[{Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Plan_Type:'Contact',Sales_Date:'2026-09-30',Qty_MT:.5,Data_Status:'LIVE'}];
 assert.deepEqual(JSON.parse(JSON.stringify(api.priorWeeklyMetrics('W41/2026','S1','C1','Special','Leg','DMS','BOX','Contact'))),{week:'W40/2026',planQty:2,actualQty:1,missing:0,uom:'BOX'},'Next-week plan carries previous-week Plan and Actual in the selected UOM for the same Sale/customer/category');
