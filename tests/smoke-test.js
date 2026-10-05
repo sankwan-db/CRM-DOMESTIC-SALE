@@ -28,6 +28,12 @@ assert.match(app, /function combinedWeeklyPlanRows\(week\)[\s\S]*toWeekRange\(we
 assert.match(app, /data-combined-edit-base[\s\S]*data-combined-edit-action/, 'Combined weekly rows keep separate edit actions for both plan types');
 assert.match(html, /oauthClientId:'227097865826-pp11vn2t5qtg69q8ito5nb9g9t165e47\.apps\.googleusercontent\.com'/, 'Google OAuth Client ID is available in the inline config before the app bundle loads');
 assert.doesNotMatch(html, /oauthClientId:'PASTE_GOOGLE_OAUTH_WEB_CLIENT_ID'/, 'Google connection does not fall back to the placeholder OAuth ID');
+const dashboardTables = html.match(/const PAGE_TABLE_KEYS=\{dashboard:\[([^\]]+)\]/)?.[1] || '';
+const actionTables = html.match(/actions:\[([^\]]+)\]/)?.[1] || '';
+assert.ok(dashboardTables.includes('actuals') && !dashboardTables.includes('weeklyPlans') && !dashboardTables.includes('actionHistory'), 'Dashboard loads its own data first and defers weekly/action history tables until Sales Action opens');
+assert.ok(actionTables.includes('weeklyPlans') && actionTables.includes('actionHistory'), 'Sales Action loads its weekly plans and history only when needed');
+assert.match(html, /async function go\(p\)[\s\S]*loadDb\(p,false\)/, 'Changing pages only fetches tables not loaded yet');
+assert.match(html, /async function loadDb\(scope=page,force=true\)[\s\S]*keys=keys.filter\(k=>!loadedDbTables.has\(k\)\)/, 'Manual refresh can force the active page data while navigation loads only missing sheets');
 assert.match(app, /id="baSale"[\s\S]*id="baChannel"[\s\S]*id="baType"[\s\S]*id="baPart"[\s\S]*id="baSub"[\s\S]*id="addActionPlan"[\s\S]*id="saveActionBatch"/, 'No-base Action has one shared header and add/save-all controls');
 assert.match(app, /function batchPlanRow[\s\S]*data-a-date[\s\S]*data-a-kind[\s\S]*data-a-customer-type[\s\S]*data-a-qty[\s\S]*data-a-uom[\s\S]*data-a-detail/, 'No-base detail rows contain the required Plan fields');
 assert.doesNotMatch(app.match(/function batchPlanRow[\s\S]*?\nfunction addActionPlanRow/)?.[0]||'', /data-a-item/, 'No-base detail rows do not require a separate Item selection');
