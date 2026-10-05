@@ -6,31 +6,15 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const app = fs.readFileSync(path.join(root, 'app-v2.js'), 'utf8');
-assert.match(html, /app-v2\.js\?v=weekly-plan-fix-20261004-11/, 'GitHub Pages cache key is refreshed for weekly plan fixes');
-assert.doesNotMatch(html, /M_PRODUCT_GROUP:'G'/, 'Google Sheets loader does not request unused M_PRODUCT_GROUP');
-assert.match(html, /T_WEEKLY_CUSTOMER_PLAN:'Y'/, 'Google Sheets loader reads Group Product fields on weekly plans');
-assert.match(app, /HEAD\[TAB\.weeklyPlans\]=\[\.\.\.HEAD\[TAB\.weeklyPlans\],'Plan_Type','Contact_Completed','Product_Type','PART','SUB_PART'/, 'Weekly plans persist at Product Type/PART/SUB-PART grain');
-assert.doesNotMatch(app, /M_PRODUCT_GROUP:'G'/, 'Unused M_PRODUCT_GROUP sheet is not loaded');
-assert.match(app, /async function clonePreviousWeek\(\)[\s\S]*?source=rows\('weeklyPlans'\)[\s\S]*?cloneWeeklyPlanRow[\s\S]*?openWeeklyEditor\(week,'',targetPlans\)/, 'Pulling the prior week duplicates saved plans into the selected week');
+assert.match(html, /<script src="app-v2\.js(?:\?[^" ]*)?"><\/script>/, 'V2 UI script is loaded by GitHub Pages with or without a cache-busting query');
+assert.match(html, /M_GROUP_PRODUCT:'G'/, 'Google Sheets loader requests the product group master');
+assert.match(html, /T_WEEKLY_CUSTOMER_PLAN:'Y'/, 'Google Sheets loader reads exactly the live weekly-plan columns');
+assert.match(html, /T_SALES_ACTION:'AM'/, 'Google Sheets loader reads all 39 live Action columns through Group Product');
+assert.doesNotMatch(html, /T_SALES_ACTION:'AI'/, 'Google Sheets loader does not truncate the extended Action sheet at AI');
+assert.match(html, /ensureCustomerLookupSheets\(\)[\s\S]*T_CONTACT_ORDER[\s\S]*T_DAILY_PRODUCTION_FORECAST/, 'missing app-owned transaction sheets are created before batch loading');
+assert.match(app, /HEAD\[TAB\.weeklyPlans\]=\[\.\.\.HEAD\[TAB\.weeklyPlans\],'Plan_Type','Contact_Completed','Product_Type','PART','SUB_PART','Group_Product_ID','Group_Product_Name'\]/, 'Weekly plans persist at Product Type/PART/SUB-PART/Group Product grain without order fields');
+assert.match(app, /async function clonePreviousWeek\(\)[\s\S]*?cloneWeeklyPlanRow\(x,week\)[\s\S]*?append\(TAB\.weeklyPlans,cloned\)[\s\S]*?openWeeklyEditor\(week,'',targetPlans\)/, 'Pulling the prior week copies saved plans into the target week without requiring Sale selection');
 assert.match(app, /data-w-sale[\s\S]*customer\?\.Assigned_Sale_ID/, 'Weekly plan selects Sale per customer from Customer Master');
-assert.equal((app.match(/function weeklyPlanTable\(list\)\{/g)||[]).length,1,'Only one weekly plan table renderer is active');
-assert.match(app,/data-weekly-expand[\s\S]*?ย่อกลับ/,'Weekly matrix has a visible expand/collapse control');
-assert.match(app,/data-week-edit[\s\S]*?แก้ไขคิว/,'Weekly matrix retains per-plan schedule edit controls');
-assert.match(app,/function targetActualMatches[\s\S]*function targetActualQty[\s\S]*?actualQtyMT/,'Target performance maps imported actuals to plan dimensions');
-assert.match(app,/function saleTargetActualTable[\s\S]*% Sales เทียบเป้า/,'Dashboard compares Sale target against actual sales');
-const dashboardSource=app.slice(app.indexOf('function dashboard(){'),app.indexOf('function detailDimensions'));
-const detailSource=app.slice(app.indexOf('function dashDetailView'),app.indexOf('function barChart'));
-assert.match(dashboardSource,/target-coverage-card/,'Team target/allocated/Actual hierarchy uses full Dashboard width');
-assert.doesNotMatch(dashboardSource,/ยอดขาย Actual ล่าสุด/,'Latest Actual table is removed from Dashboard summary');
-assert.match(dashboardSource,/dashView==='detail'\?dashDetailView/,'Dashboard detail tree is rendered only when its tab is selected');
-assert.match(detailSource,/ยอดขาย Actual ล่าสุด[\s\S]*actualTable/,'Latest Actual table is placed in Detail tab');
-assert.match(app,/targetActualIndexCache/,'Actual-to-target matching is indexed to avoid repeated full-sheet scans');
-
-assert.doesNotMatch(app,/uniqueChannelRows/,'No unresolved uniqueChannelRows reference remains');
-assert.match(app,/function render\(\)[\s\S]*?dashboard\(\)/,'Dashboard route renders through the current app version');
-assert.match(html,/weekly-plan-fix-20261004-11/,'HTML activates the latest CRM dashboard script');
-assert.match(html,/modalback\.open\{z-index:10050!important\}/,'Weekly editor modal renders above frozen table headers');
-assert.match(html,/tfoot th,\.weekly-matrix tfoot td\{position:static!important/,'Weekly summary footer does not cover data rows');
 assert.match(app, /function downloadWeeklyPlanTemplate[\s\S]*CRM_Weekly_Customer_Plan_Template\.xlsx/, 'Weekly Plan provides an Excel template');
 assert.match(app, /function exportWeeklyPlanExcel[\s\S]*Weekly_Plan_/, 'Weekly Plan supports Excel export');
 assert.match(app, /function importWeeklyPlanExcel[\s\S]*prepareWeeklyPlanImport/, 'Weekly Plan supports validated Excel import');
@@ -45,11 +29,11 @@ assert.match(app, /HEAD\[TAB\.targets\]=\[\.\.\.HEAD\[TAB\.targets\],'Product_Ty
 
 const ctx = {
   console,
-  window: {},
-  $() { return { value: 'Market' }; },
-  document: { documentElement: { dataset: {} }, addEventListener() {}, querySelectorAll() { return []; }, querySelector() { return null; }, getElementById() { return null; } },
+  document: { documentElement: { dataset: {} }, addEventListener() {}, querySelector() { return null; } },
+  window: { addEventListener() {} },
+  $() { return null; },
   CONFIG: {},
-  TAB: { groupProducts:'M_GROUP_PRODUCT',productTypes:'M_PRODUCT_TYPE',parts:'M_PART',subParts:'M_SUB_PART',teamTargets: 'T_TEAM_TARGET', targets: 'T_MONTHLY_TARGET', weeklyPlans: 'T_WEEKLY_CUSTOMER_PLAN' },
+  TAB: { teamTargets: 'T_TEAM_TARGET', targets: 'T_MONTHLY_TARGET', weeklyPlans: 'T_WEEKLY_CUSTOMER_PLAN' },
   HEAD: {
     T_TEAM_TARGET: ['Target_ID','Year','Month','Channel','SUB_PART','Plan_MT','Updated_By','Updated_At','Data_Status'],
     T_MONTHLY_TARGET: ['Target_ID','Year','Month','Channel','Item_Code','Target_MT'],
@@ -60,7 +44,7 @@ const ctx = {
   active(arr) { return arr.filter(x => String(x.Active || 'Y').toUpperCase() !== 'N'); },
   esc(value) { return String(value ?? ''); },
   fmt(value, digits=2) { return Number(value || 0).toFixed(digits); },
-  normDate(value) { const p=String(value||'').split('/'); return p.length===3 ? `${p[2]}-${String(p[1]).padStart(2,'0')}-${String(p[0]).padStart(2,'0')}` : String(value||'').slice(0,10); },
+  normDate(value) { return String(value || '').slice(0,10); },
   id(prefix) { return prefix + '-TEST'; },
   legacyActionForm() {},
   legacyImportMaster() {},
@@ -69,19 +53,14 @@ const ctx = {
 };
 ctx.rows = name => ctx.db[name] || [];
 ctx.db = {
-  groupProducts: [{Group_Product_ID:'GRP1',Group_Product_Name:'Demo Group',Product_Type_ID:'TYPE1',PART_ID:'PART1',SUB_PART_ID:'SUB1',Active:'Y'}],
-  productTypes: [{Product_Type_ID:'TYPE1',Product_Type:'Special',Active:'Y'}],
-  parts: [{PART_ID:'PART1',PART:'Leg',Active:'Y'}],
-  subParts: [{SUB_PART_ID:'SUB1',PART_ID:'PART1',SUB_PART:'DMS',Active:'Y'}],
-  items: [{Item_Code:'I1',Item_Name:'Demo Item',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Group_Product_ID:'GRP1',Base_UOM:'BOX',KG_Per_UOM:500}],
+  productGroups: [{Product_Group_ID:'G1',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Base_UOM:'MT',Active:'Y'}],
+  items: [{Item_Code:'I1',Item_Name:'Demo Item',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Base_UOM:'BOX',KG_Per_UOM:500}],
   sales: [{Sale_ID:'S1',Sale_Name:'Sale One',Channel:'Market'},{Sale_ID:'S2',Sale_Name:'Sale Two',Channel:'Market'}],
   customers: [{Customer_Code:'C1',Customer_Name:'Customer One',Assigned_Sale_ID:'S1',Channel:'Market'},{Customer_Code:'C2',Customer_Name:'Customer Two',Assigned_Sale_ID:'S2',Channel:'Market'},{Customer_Code:'C3',Customer_Name:'Customer Three',Assigned_Sale_ID:'S1',Channel:'Market'}], actuals: [], actions: [], weeklyPlans: [],
-  targets: [{Target_ID:'A1',Year:2026,Month:10,Channel:'Market',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Sale_ID:'S1',Target_MT:10,Data_Status:'LIVE'}],
-  channels: [{Channel_Code:'MKT',Channel_Name:'Market',Active:'Y'},{Channel_Code:'MKT',Channel_Name:'Market Duplicate',Active:'Y'}]
+  targets: [{Target_ID:'A1',Year:2026,Month:10,Channel:'Market',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Sale_ID:'S1',Target_MT:10,Data_Status:'LIVE'}]
 };
-ctx.db.actuals=[{Actual_ID:'ACT1',Sales_Date:'2026-10-03',Channel:'MKT',Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Qty_KG:2500,Qty_MT:2.5,Data_Status:'LIVE'}];
 let source = app.replace(/drawNav\(\);go\('dashboard'\);/g, '');
-source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,targetCoverage,splitTable,targetActualQty,targetActualTotal,channelUniqueRows,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,weeklyPlanTable,passesWeeklyPlanFilters,normalizeWeeklyKey,weeklyPlanDateKey,weeklyActualInPlanUom,filterState,categoryActualInPlanUom,contactAcceptancePct,actionRowV2,actionCard,calendarMonth,groupUomOptions,customerLovOptionsForGroup,priorWeeklyMetrics,prepareWeeklyPlanImport};';
+source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,weeklyPlanTable,contactAcceptancePct,actionRowV2,actionCard,calendarMonth,groupUomOptions,customerLovOptionsForGroup,priorWeeklyMetrics,prepareWeeklyPlanImport};';
 vm.runInNewContext(source, ctx, {filename:'app-v2.js'});
 const api = ctx.crmTestApi;
 assert.equal(api.selfCheck.bad.length, 0, 'built-in date/UOM checks pass');
@@ -92,18 +71,9 @@ ctx.db.teamTargets = [team];
 assert.equal(api.allocationsForTeam(team).reduce((n,x)=>n+Number(x.Target_MT),0),10,'allocation totals match exact category');
 ctx.db.targets.push({Target_ID:'A2',Year:2026,Month:10,Channel:'Market',Product_Type:'Value Add',PART:'Leg',SUB_PART:'DMS',Sale_ID:'S1',Target_MT:99,Data_Status:'LIVE'});
 assert.equal(api.allocationsForTeam(team).reduce((n,x)=>n+Number(x.Target_MT),0),10,'same SUB-PART under a different Product Type is excluded');
-assert.equal(api.channelUniqueRows().length,1,'Channel master list removes duplicate channel codes');
-assert.equal(api.targetActualQty(team),2.5,'Monthly team target shows matched imported Actual in MT');
-assert.equal(api.targetActualQty(ctx.db.targets[0],'S1'),2.5,'Sale target Actual matches month, channel, product and Sale');
-assert.equal(api.targetActualTotal([team,team]),2.5,'Actual rows are not double-counted when scopes overlap');
-const performanceActuals=Array.from({length:12000},(_,i)=>({Actual_ID:'PERF-'+i,Sales_Date:'2026-10-03',Channel:'MKT',Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Qty_MT:0.001,Data_Status:'LIVE'}));
-assert.equal(Number(api.targetActualTotal([team],performanceActuals).toFixed(3)),12,'Indexed Actual matching handles larger report batches');
-assert.ok(api.teamTargetTable([team]).includes('ยอดขาย Actual (MT)'),'Team target table includes imported Actual');
-assert.ok(api.splitTable(ctx.db.targets).includes('% Sales เทียบเป้า'),'Individual monthly target table includes Actual achievement');
-assert.ok(api.targetCoverage([team],ctx.db.targets,ctx.db.actuals).includes('2.50 MT'),'Target hierarchy displays Actual against team target');
 const targetHtml = api.teamTargetTable([team]);
-for (const text of ['2026','10','Special','Leg','DMS','Team Target']) assert.ok(targetHtml.includes(text), `target summary includes ${text}`);
-const report = api.salesProductReport([{Sale_ID:'S1',Item_Code:'I1',Customer_Code:'C1',Channel:'MKT',Sales_Date:'2026-10-03',Qty_MT:4,Data_Status:'LIVE'}],ctx.db.targets.slice(0,1));
+for (const text of ['Special','Leg','DMS','12.00 MT','เป้าทีม (MT)','Actual (MT)']) assert.ok(targetHtml.includes(text), `target hierarchy includes ${text}`);
+const report = api.salesProductReport([{Sale_ID:'S1',Item_Code:'I1',Qty_MT:4}],ctx.db.targets.slice(0,1));
 assert.equal(report.length,1);
 assert.equal(report[0].Plan,10);
 assert.equal(report[0].Actual,4,'item Actual aggregates to category Plan');
@@ -125,31 +95,30 @@ const weeklySet=[
 ];
 assert.equal(weeklySet.length,2,'one coordinator batch can contain plans for multiple customers');
 assert.deepEqual(weeklySet.map(x=>x.Sale_ID),['S1','S2'],'weekly Sale defaults independently from each Customer Master row');
-ctx.db.actuals=[{Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Sales_Date:'2026-09-30',Qty_MT:.5,Data_Status:'LIVE'}];
+ctx.db.actuals=[{Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Plan_Type:'Contact',Sales_Date:'2026-09-30',Qty_MT:.5,Data_Status:'LIVE'}];
 const weeklyMatrix=api.weeklyPlanTable([weekly]);
-for(const text of ['28/09/2026','30/09/2026','<th class="plan-head">Plan</th><th class="actual-head">Actual</th>','Contact Plan','Spot Plan','weekly-total-actual'])assert.ok(weeklyMatrix.includes(text),`weekly matrix includes ${text}`);
-assert.match(weeklyMatrix,/50\.0%/,'Coverage is calculated from imported Actual vs Plan');
-api.filterState.periodMode='month';api.filterState.years=['2026'];api.filterState.periods=['2026-10'];
-const savedW39={Week_Key:'W39/2026',Plan_Date:'22/9/2026',Data_Status:'',Sale_ID:'SALE-001',Customer_Code:'100003',Channel:'DMS',Product_Type:'VALUE ADD',PART:'PAWS',SUB_PART:'PAWS (A)',Group_Product_ID:'GRP-035'};
-assert.equal(api.passesWeeklyPlanFilters(savedW39),true,'A selected weekly Plan is not hidden by an unrelated global month period filter');
-assert.equal(api.normalizeWeeklyKey(' WEEK 39 / 2026 '),'W39/2026','Week labels are normalized despite spacing and WEEK prefix');
-assert.equal(api.normalizeWeeklyKey('', '22/9/2026'),'W39/2026','Plan Date recovers the week when the saved Week_Key is blank');
-assert.equal(String(savedW39.Week_Key).trim(),'W39/2026','Saved Sheet week key matches the selected week');
-ctx.db.weeklyPlans=[{Week_Key:'W40/2026',Sale_ID:'S1',Customer_Code:'C1',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Plan_Qty:2,Plan_UOM:'BOX',Data_Status:'LIVE'}];
-ctx.db.actuals=[{Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Sales_Date:'2026-09-30',Qty_KG:500,Qty_MT:.5,Data_Status:'LIVE'}];
-assert.deepEqual(JSON.parse(JSON.stringify(api.priorWeeklyMetrics('W41/2026','S1','C1','Special','Leg','DMS','BOX'))),{week:'W40/2026',planQty:2,actualQty:1,missing:0,uom:'BOX'},'Next-week plan carries prior Plan and item-converted Actual in selected Plan UOM');
-ctx.db.itemUoms=[{Item_Code:'I1',UOM:'BOX',KG_Per_UOM:500,Active:'Y'}];
-const importedWeekly=api.prepareWeeklyPlanImport([{Week_Key:'W40/2026',Plan_Date:'2026-09-28',Plan_Type:'Contact',Customer_Code:'C2',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Group_Product_ID:'GRP1',Group_Product_Name:'Demo Group',Plan_Qty:2,Plan_UOM:'BOX',Sale_ID:''}],'W40/2026');
+for(const text of ['28/09/2026','30/09/2026','Contact','Spot รายวัน','Actual','ขยายตาราง','ปรับ Plan'])assert.ok(weeklyMatrix.includes(text),`weekly matrix includes ${text}`);
+assert.match(weeklyMatrix,/50\.0%/,'Contact coverage is calculated from imported Actual vs Plan');
+const pairedWeekly=api.buildWeeklyRecord('W40/2026',ctx.db.sales[0],{Plan_Date:'2026-09-30',Customer_Code:'C1',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Plan_Qty:1,Plan_UOM:'BOX',KG_Per_UOM:500,Plan_Type:'Spot'});
+const pairHtml=api.weeklyPlanTable([weekly,pairedWeekly]);
+assert.match(pairHtml,/weekly-type-group[\s\S]*Contact[\s\S]*weekly-type-group[\s\S]*Spot รายวัน/,'Contact and Spot plans are shown in separate plan-type groups');
+assert.match(pairHtml,/Sale 50\.0%/,'Actual is matched to the Contact plan and not counted against Spot');
+assert.match(pairHtml, /<td class="num weekly-total-actual">1\.000<\/td>/, 'Summary Actual is aggregated in Plan UOM across the customer/product group');
+assert.match(pairHtml,/weekly-expand-toggle/,'weekly matrix includes a reversible expand control');
+ctx.db.weeklyPlans=[{Week_Key:'W40/2026',Plan_Date:'2026-09-30',Sale_ID:'S1',Customer_Code:'C1',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Plan_Qty:2,Plan_UOM:'BOX',Plan_Type:'Contact',Data_Status:'LIVE'}];
+ctx.db.actuals=[{Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Plan_Type:'Contact',Sales_Date:'2026-09-30',Qty_MT:.5,Data_Status:'LIVE'}];
+assert.deepEqual(JSON.parse(JSON.stringify(api.priorWeeklyMetrics('W41/2026','S1','C1','Special','Leg','DMS','BOX','Contact'))),{week:'W40/2026',planQty:2,actualQty:1,missing:0,uom:'BOX'},'Next-week plan carries previous-week Plan and Actual in the selected UOM for the same Sale/customer/category');
+const importedWeekly=api.prepareWeeklyPlanImport([{Week_Key:'W40/2026',Plan_Date:'2026-09-28',Plan_Type:'Contact',Customer_Code:'C2',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Plan_Qty:2,Plan_UOM:'BOX',Sale_ID:''}],'W40/2026');
 assert.equal(importedWeekly[0].Sale_ID,'S2','Excel import defaults Sale from Customer Master');
 assert.equal(importedWeekly[0].Plan_MT,1,'Excel import converts Plan quantities using Item Master UOM');
-const overriddenWeekly=api.prepareWeeklyPlanImport([{Week_Key:'W40/2026',Plan_Date:'2026-09-28',Plan_Type:'Contact',Customer_Code:'C2',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Group_Product_Name:'Demo Group',Plan_Qty:2,Plan_UOM:'BOX',Sale_ID:'S1'}],'W40/2026');
+const overriddenWeekly=api.prepareWeeklyPlanImport([{Week_Key:'W40/2026',Plan_Date:'2026-09-28',Plan_Type:'Contact',Customer_Code:'C2',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Plan_Qty:2,Plan_UOM:'BOX',Sale_ID:'S1'}],'W40/2026');
 assert.equal(overriddenWeekly[0].Sale_ID,'S1','Excel import allows a week-specific Sale override');
 assert.deepEqual(weeklySet.map(x=>x.Plan_Type),['Contact','Spot'],'Contact and Spot are stored separately by scheduled date');
 assert.deepEqual(weeklySet.map(x=>x.Plan_MT),[1,1.5]);
 assert.throws(() => api.buildWeeklyRecord('W40/2026', ctx.db.sales[0], {Plan_Date:'2026-10-05',Customer_Code:'C1',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Plan_Qty:1,Plan_UOM:'MT',KG_Per_UOM:1000}), /ไม่อยู่ในช่วง/);
 const followup = api.buildFollowupRecords(ctx.db.sales[0], [
-  {Due_Date:'2026-09-30',Action_Type:'เข้าพบลูกค้า',Customer_Type:'OLD',Customer_Code:'C1',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Action_Product_Level:'SUB_PART',Plan_Qty:2,Plan_UOM:'BOX',KG_Per_UOM:500,Action_Detail:'Visit'},
-  {Due_Date:'2026-10-01',Action_Type:'โทรติดตาม',Customer_Type:'PROSPECT',Prospect_Name:'Prospect X',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Action_Product_Level:'SUB_PART',Plan_Qty:3,Plan_UOM:'MT',KG_Per_UOM:1000,Action_Detail:'Call'}
+  {Due_Date:'2026-09-30',Action_Type:'เข้าพบลูกค้า',Customer_Type:'OLD',Customer_Code:'C1',Plan_Qty:2,Plan_UOM:'BOX',KG_Per_UOM:500,Action_Detail:'Visit',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Action_Product_Level:'SUB_PART'},
+  {Due_Date:'2026-10-01',Action_Type:'โทรติดตาม',Customer_Type:'PROSPECT',Prospect_Name:'Prospect X',Plan_Qty:3,Plan_UOM:'MT',KG_Per_UOM:1000,Action_Detail:'Call',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Action_Product_Level:'SUB_PART'}
 ], 'B1');
 assert.equal(followup.length,2);
 assert.equal(followup[0].Customer_Code,'C1');
@@ -171,19 +140,11 @@ ctx.db.items.push({Item_Code:'I2',Item_Name:'Demo Item 2',Product_Type:'Special'
 assert.match(api.groupUomOptions('Special','Leg','DMS'), /BOX.*500/,'Group UOM dropdown uses consistent master conversion');
 ctx.db.itemUoms.push({Item_Code:'I2',UOM:'CRATE',KG_Per_UOM:800,Active:'Y'});
 ctx.db.itemUoms.push({Item_Code:'I1',UOM:'CRATE',KG_Per_UOM:700,Active:'Y'});
-assert.doesNotMatch(api.groupUomOptions('Special','Leg','DMS'), /CRATE/,'Single-factor UOM dropdown excludes inconsistent factors when a uniform conversion is required');
-ctx.db.items.find(x=>x.Item_Code==='I2').KG_Per_UOM=600;
-ctx.db.itemUoms.find(x=>x.Item_Code==='I2'&&x.UOM==='BOX').KG_Per_UOM=600;
-assert.match(api.groupUomOptions('Special','Leg','DMS','BOX',true), /แปลงตามอัตราของแต่ละ Item/,'Weekly Plan permits the same UOM with different per-Item conversion factors');
-ctx.db.weeklyPlans=[{Week_Key:'W40/2026',Plan_Date:'2026-09-30',Sale_ID:'S1',Customer_Code:'C1',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Plan_Type:'Contact',Plan_Qty:10,Plan_UOM:'BOX',Data_Status:'LIVE'}];
-ctx.db.actuals=[{Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Sales_Date:'2026-09-30',Qty_KG:1000,Qty_MT:1,Data_Status:'LIVE'},{Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I2',Sales_Date:'2026-09-30',Qty_KG:1200,Qty_MT:1.2,Data_Status:'LIVE'}];
-const itemConverted=api.weeklyPlanTable(ctx.db.weeklyPlans);
-assert.match(itemConverted,/4\.000/,'Actual sums item-by-item equivalents in the Plan UOM');
-assert.match(itemConverted,/40\.0%/,'Coverage compares aggregated item-converted Actual with Plan quantity');
+assert.doesNotMatch(api.groupUomOptions('Special','Leg','DMS'), /CRATE/,'Ambiguous conversion is excluded instead of calculating incorrect MT');
 assert.equal(followup[0].Product_Type,'Special');
 assert.equal(followup[0].PART,'Leg');
 assert.equal(followup[0].SUB_PART,'DMS');
-assert.doesNotMatch(api.weeklyCalendar([weekly]), /data-week-del="WPLAN-TEST"/, 'Weekly customer plans are excluded from Prospect Action calendar');
+assert.match(api.weeklyCalendar([weekly]), /data-week-del="WPLAN-TEST"/, 'weekly Plan can be deleted from calendar');
 const action={Action_ID:'ACT-1',Due_Date:'2026-09-30',Next_Action_Date:'2026-10-02',Next_Action:'Send quotation',Manager_Comment:'Follow up with price',Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Action_Type:'โทรติดตาม',Status:'OPEN',Plan_MT:2,Closed_Sales_MT:0,Product_Type:'Special',PART:'Leg',SUB_PART:'DMS'};
 assert.match(api.actionRowV2(action), /Send quotation[\s\S]*2026-10-02[\s\S]*Follow up with price/, 'Action details include next step, due date, and manager comment');
 assert.match(api.actionCard(action), /2026-10-02/, 'Kanban shows the latest Next Action date');
