@@ -12,6 +12,8 @@ assert.match(html, /T_WEEKLY_CUSTOMER_PLAN:'Y'/, 'Google Sheets loader reads exa
 assert.match(html, /T_SALES_ACTION:'AM'/, 'Google Sheets loader reads all 39 live Action columns through Group Product');
 assert.doesNotMatch(html, /T_SALES_ACTION:'AI'/, 'Google Sheets loader does not truncate the extended Action sheet at AI');
 assert.match(html, /ensureCustomerLookupSheets\(\)[\s\S]*T_CONTACT_ORDER[\s\S]*T_DAILY_PRODUCTION_FORECAST/, 'missing app-owned transaction sheets are created before batch loading');
+assert.match(html, /path\.startsWith\('\?'\)\|\|path\.startsWith\('\:'\)\?base\+path/, 'Sheets method URLs support the colon form required by batchUpdate');
+assert.doesNotMatch(html + app, /api\('batchUpdate'/, 'all spreadsheet batchUpdate calls use the correct colon endpoint');
 assert.match(app, /HEAD\[TAB\.weeklyPlans\]=\[\.\.\.HEAD\[TAB\.weeklyPlans\],'Plan_Type','Contact_Completed','Product_Type','PART','SUB_PART','Group_Product_ID','Group_Product_Name'\]/, 'Weekly plans persist at Product Type/PART/SUB-PART/Group Product grain without order fields');
 assert.match(app, /async function clonePreviousWeek\(\)[\s\S]*?cloneWeeklyPlanRow\(x,week\)[\s\S]*?append\(TAB\.weeklyPlans,cloned\)[\s\S]*?openWeeklyEditor\(week,'',targetPlans\)/, 'Pulling the prior week copies saved plans into the target week without requiring Sale selection');
 assert.match(app, /data-w-sale[\s\S]*customer\?\.Assigned_Sale_ID/, 'Weekly plan selects Sale per customer from Customer Master');
