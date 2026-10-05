@@ -9,7 +9,10 @@ CONFIG.oauthClientId=APP_OAUTH_ID;
 // Extended CRM schemas: category-level Plan, weekly Contact/Spot metrics.
 HEAD[TAB.teamTargets]=[...HEAD[TAB.teamTargets],'Product_Type','PART'];
 HEAD[TAB.targets]=[...HEAD[TAB.targets],'Product_Type','PART','SUB_PART'];
-HEAD[TAB.weeklyPlans]=[...HEAD[TAB.weeklyPlans],'Plan_Type','Contact_Completed','Product_Type','PART','SUB_PART','Group_Product_ID','Group_Product_Name','Contact_Order_Qty','Contact_Order_Date'];
+// Contact-order quantities and receipt dates live in T_CONTACT_ORDER. Keep the
+// weekly-plan schema aligned with the existing A:Y sheet instead of extending
+// it into blank/out-of-grid columns during sign-in.
+HEAD[TAB.weeklyPlans]=[...HEAD[TAB.weeklyPlans],'Plan_Type','Contact_Completed','Product_Type','PART','SUB_PART','Group_Product_ID','Group_Product_Name'];
 function categoryMasterRows(){const seen=new Set();return active(rows('items')).filter(x=>x.Product_Type&&x.PART&&x.SUB_PART).map(x=>{const k=[x.Product_Type,x.PART,x.SUB_PART].join('|');if(seen.has(k))return null;seen.add(k);return {Product_Group_ID:k,Product_Type:x.Product_Type,PART:x.PART,SUB_PART:x.SUB_PART,Base_UOM:x.Base_UOM||'KG',Active:'Y',Data_Status:x.Data_Status||'LIVE'}}).filter(Boolean)}
 
 function localToday(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
@@ -907,7 +910,7 @@ const ACTION_EXTRA_FIELDS=['Plan_Group_ID','Action_Product_Level','Group_Product
 HEAD[TAB.actions]=[...HEAD[TAB.actions],...ACTION_EXTRA_FIELDS.filter(k=>!HEAD[TAB.actions].includes(k))];
 async function ensureCustomerLookupSheets(){
  const schema={M_CUSTOMER_SEGMENT:HEAD.M_CUSTOMER_SEGMENT,M_ROUTE:HEAD.M_ROUTE,M_CUSTOMER_STATUS:HEAD.M_CUSTOMER_STATUS},tabs=[...Object.keys(schema),TAB.customers,TAB.prospects,TAB.actions,TAB.contactOrders];
- const meta=await api('?fields=sheets.properties(title,sheetId)'),byTitle=new Map((meta.sheets||[]).map(s=>[s.properties.title,s.properties.sheetId]));
+ const meta=await api(''),byTitle=new Map((meta.sheets||[]).map(s=>[s.properties.title,s.properties.sheetId]));
  const missing=tabs.filter(t=>!byTitle.has(t));if(missing.length){const out=await api('batchUpdate',{requests:missing.map(title=>({addSheet:{properties:{title,gridProperties:{rowCount:5000,columnCount:45,frozenRowCount:1}}}}))});(out.replies||[]).forEach((r,n)=>byTitle.set(missing[n],r.addSheet.properties.sheetId))}
  for(const tab of tabs){const fallback=schema[tab]||HEAD[tab]||[],got=await api(`values/${encodeURIComponent(`'${tab}'!1:1`)}`),gotHeader=(got.values||[])[0]||[],current=gotHeader.some(Boolean)?gotHeader:fallback,header=current.filter(Boolean);if(tab===TAB.customers||tab===TAB.prospects)for(const key of CRM_PROFILE_FIELDS)if(!header.includes(key))header.push(key);if(tab===TAB.actions)for(const key of ACTION_EXTRA_FIELDS)if(!header.includes(key))header.push(key);if(tab===TAB.contactOrders)for(const key of HEAD[TAB.contactOrders])if(!header.includes(key))header.push(key);HEAD[tab]=header;if(JSON.stringify(header)!==JSON.stringify(current.filter(Boolean))){const end=colName(header.length);await api(`values/${encodeURIComponent(`'${tab}'!A1:${end}1`)}?valueInputOption=RAW`,{range:`'${tab}'!A1:${end}1`,majorDimension:'ROWS',values:[header]},'PUT')}}
 }
