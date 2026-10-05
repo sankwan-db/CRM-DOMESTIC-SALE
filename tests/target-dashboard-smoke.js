@@ -67,8 +67,6 @@ assert.match(app, /function weeklyActualPlanSaleMatch\(a,saleId\)[\s\S]*return !
 assert.match(app, /weeklyActualFilterRow\(a,group.Sale_ID\)/, 'weekly filters use the planned Sale when imported Sale_ID and customer assignment are blank');
 assert.match(app, /weekly-total-plan[^]*weekly-total-actual[^]*% Coverage[^]*ปรับ Plan/, 'weekly summary columns follow Plan, Actual, Coverage, Adjust Plan');
 assert.match(app, /function openWeeklyEdit\(o\)[^]*weeklyGroupKey\(x\)===key[^]*openWeeklyEditor/, 'Edit Plan loads every date and plan type for the selected customer/product group');
-assert.match(app, /<tr class=\"hierarchy-data-row level-'.*?hierarchy-qty/, 'Dashboard detail rows use table-native rows, not the div hierarchy grid');
-assert.match(app, /<colgroup><col class=\"hier-col-product\"><col class=\"hier-col-plan\"><col class=\"hier-col-actual\"><col class=\"hier-col-coverage\"><\/colgroup>/, 'Dashboard hierarchy uses one label column plus three aligned measures');
 assert.match(html, /hierarchy-table tr\.hierarchy-data-row\{display:table-row/, 'hierarchy rows retain native table column alignment');
 assert.match(html, /weekly-summary-row\.weekly-spot-total>th:first-child\{justify-content:flex-start!important;text-align:left!important\}/, 'Contact and Spot summary labels stay left aligned consistently');
 assert.match(html, /T_SALES_ACTUAL:\[[^\]]*'Plan_Type'\]/, 'Actual import schema contains Plan_Type');
@@ -135,16 +133,24 @@ assert.match(app, /function saveContactOrders\(\)[\s\S]*Contact_Order_Qty:qtyTex
 assert.match(app, /function downloadWeeklyPlanTemplate[\s\S]*'Plan_UOM','Sale_ID','Plan_ID'/, 'weekly Plan template contains only fields stored by T_WEEKLY_CUSTOMER_PLAN');
 assert.doesNotMatch(app.match(/function downloadWeeklyPlanTemplate[\s\S]*?function exportWeeklyPlanExcel/)?.[0]||'', /Contact_Order_Qty|Contact_Order_Date/, 'weekly Plan template does not offer receipt fields that are stored in T_CONTACT_ORDER');
 assert.match(app, /<td class=\"num\">[\s\S]*<td class=\"center\">/, 'flat target rows separate right-aligned weights and centered percentages');
-assert.match(html, /flat-target-table td\.num\{text-align:right!important[\s\S]*flat-target-table td\.center\{text-align:center!important/, 'flat table aligns weights right and percentages centered');
 assert.match(app, /weekly-contact-total/, 'weekly matrix keeps a distinct Contact Total row');
 assert.match(html, /weekly-contact-total>\*\{position:static!important;left:auto!important;top:auto!important;z-index:auto!important\}/, 'optional weekly matrix has no frozen identity/summary columns');
 assert.match(html, /#app \.hierarchy-table thead th\{position:sticky;top:0;z-index:4/, 'dashboard hierarchy keeps only its header sticky');
 assert.match(html, /#app \.hierarchy-table tfoot th\{position:static!important/, 'dashboard total row scrolls normally');
-assert.match(html, /flat-target-table-wrap/, 'flat tables have a bounded scrolling wrapper');
-assert.match(html, /flat-target-table thead th\{position:sticky;top:0/, 'flat table header remains visible');
-assert.match(html, /flat-target-table td\.num\{text-align:right!important/, 'numeric values align right');
+assert.match(html, /detail-flat-wrap/, 'product/Sale detail has a bounded flat table');
+assert.match(html, /detail-flat-table thead th\{position:sticky;top:0/, 'flat detail header stays visible on scroll');
+assert.ok(html.includes('#app .detail-flat-table td.num,#app .detail-flat-table th.num{text-align:right!important'), 'flat detail measures align right');
 assert.match(app, /function targetCoverage\(team,split,actualRows=rows\('actuals'\)\)[\s\S]*sale-detail-pop[\s\S]*dashboard-flat-target-table/, 'dashboard target rows use flat table with Sale detail dropdown');
-assert.match(app, /const treeCell='<div class=\"hierarchy-label\" style=\"--tree-level:/, 'Dashboard periods and Sales share the hierarchy label column');
+assert.match(app,/function dashDetailView\(actuals,allocations\)[\s\S]*detail-flat-table/,'Dashboard product/Sale detail is rendered as a flat table');
+const detailStart=app.indexOf('function detailDimensions('),detailEnd=app.indexOf('function latestActualDetailView(',detailStart);
+const detailFixture={items:[{Item_Code:'I1',Item_Name:'BL Scrap',Product_Type:'SPECIAL',PART:'BL',SUB_PART:'BL SCRAP'}],customers:[{Customer_Code:'C1',Channel:'DMS-001',Assigned_Sale_ID:'S1'}],sales:[{Sale_ID:'S1',Sale_Name:'Sale One',Channel:'DMS-001'}],groupProducts:[]};
+const detailCtx={rows:n=>detailFixture[n]||[],findRowCached:(table,key,value)=>(detailFixture[table]||[]).find(x=>String(x[key])===String(value))||null,groupForTarget:t=>t,targetLevel:t=>t.Target_Level||'SUB_PART',channelUniqueRows:()=>[{Channel_Code:'DMS-001',Channel_Name:'DMS'}],canonicalTargetChannel:x=>String(x||''),actualSaleKey:a=>a.Sale_ID||detailFixture.customers.find(c=>c.Customer_Code===a.Customer_Code)?.Assigned_Sale_ID||'',actualQtyMT:a=>Number(a.Qty_MT||0),normDate:x=>String(x||'').slice(0,10),fmt:(x,d=2)=>Number(x||0).toFixed(d),esc:x=>String(x??''),filterState:{channels:[]},detailChannel:'ALL'};
+vm.runInNewContext(app.slice(detailStart,detailEnd)+'\nthis.renderDetail=dashDetailView;this.flatRows=flatChannelDetailRows;',detailCtx);
+const actualFixture=[{Data_Status:'LIVE',Sales_Date:'2026-10-05',Channel:'DMS-001',Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Qty_MT:6.04}];
+const planFixture=[{Data_Status:'LIVE',Year:2026,Month:10,Channel:'DMS-001',Sale_ID:'S1',Product_Type:'SPECIAL',PART:'BL',SUB_PART:'BL SCRAP',Target_Level:'SUB_PART',Target_MT:50}];
+const flatHtml=detailCtx.renderDetail(actualFixture,planFixture);
+assert.match(flatHtml,/Product Type/);assert.match(flatHtml,/BL Scrap|BL SCRAP/);assert.match(flatHtml,/Sale One/);assert.match(flatHtml,/50\.00 MT/);assert.match(flatHtml,/6\.04 MT/);assert.match(flatHtml,/12\.1%/);assert.doesNotMatch(flatHtml,/treeExpandAll|data-tree-toggle|Expand All|ยุบทั้งหมด/,'flat detail has no hierarchy controls');
+
 assert.match(app, /data-week-subview=\"daily\"[\s\S]*data-week-subview=\"summary\"[\s\S]*data-week-subview=\"matrix\"[\s\S]*data-week-subview=\"orders\"/, 'weekly page provides vertical, product summary, matrix, and Contact order tabs');
 assert.match(app, /function weeklyDailyPlanTable\([\s\S]*วันที่ \/ วัน[\s\S]*ประมาณการณ์ผลิต[\s\S]*Actual \(หน่วย Plan\)[\s\S]*weeklyDailyPrev/, 'vertical weekly list shows daily forecast, planned-unit Actual and pagination');
 assert.match(app, /function weeklyProductSummaryTable\([\s\S]*Plan Contact \(MT\)[\s\S]*Plan Spot \(MT\)[\s\S]*ประมาณการณ์ผลิต \(MT\)[\s\S]*Actual \(MT\)/, 'product summary compares Contact/Spot plans, forecast, and actual');
