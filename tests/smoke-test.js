@@ -22,6 +22,12 @@ assert.match(app, /function exportWeeklyPlanExcel[\s\S]*Weekly_Plan_/, 'Weekly P
 assert.match(app, /function importWeeklyPlanExcel[\s\S]*prepareWeeklyPlanImport/, 'Weekly Plan supports validated Excel import');
 assert.match(app, /data-w-prev-metric[\s\S]*?priorWeeklyMetrics/, 'Weekly planning rows show previous-week Plan and Actual context');
 assert.match(app, /data-at="table"[\s\S]*data-at="kanban"[\s\S]*data-at="calendar"/, 'Action tabs are present');
+assert.match(app, /data-action-mode="combined"[\s\S]*แผนรายสัปดาห์ · รวมทั้งหมด/, 'Sales Action provides a combined weekly-plan tab');
+assert.match(app, /function combinedWeeklyPlanRows\(week\)[\s\S]*weeklyDailyRows\(week,weekPlans\)[\s\S]*rows\('actions'\)/, 'Combined weekly tab merges base-customer plans and prospect actions');
+assert.match(app, /function combinedWeeklyPlanRows\(week\)[\s\S]*toWeekRange\(week\)[\s\S]*Due_Date/, 'Combined weekly tab scopes follow-up actions to the selected Monday–Sunday week');
+assert.match(app, /data-combined-edit-base[\s\S]*data-combined-edit-action/, 'Combined weekly rows keep separate edit actions for both plan types');
+assert.match(html, /oauthClientId:'227097865826-pp11vn2t5qtg69q8ito5nb9g9t165e47\.apps\.googleusercontent\.com'/, 'Google OAuth Client ID is available in the inline config before the app bundle loads');
+assert.doesNotMatch(html, /oauthClientId:'PASTE_GOOGLE_OAUTH_WEB_CLIENT_ID'/, 'Google connection does not fall back to the placeholder OAuth ID');
 assert.match(app, /id="baSale"[\s\S]*id="baChannel"[\s\S]*id="baType"[\s\S]*id="baPart"[\s\S]*id="baSub"[\s\S]*id="addActionPlan"[\s\S]*id="saveActionBatch"/, 'No-base Action has one shared header and add/save-all controls');
 assert.match(app, /function batchPlanRow[\s\S]*data-a-date[\s\S]*data-a-kind[\s\S]*data-a-customer-type[\s\S]*data-a-qty[\s\S]*data-a-uom[\s\S]*data-a-detail/, 'No-base detail rows contain the required Plan fields');
 assert.doesNotMatch(app.match(/function batchPlanRow[\s\S]*?\nfunction addActionPlanRow/)?.[0]||'', /data-a-item/, 'No-base detail rows do not require a separate Item selection');
@@ -62,9 +68,20 @@ ctx.db = {
   targets: [{Target_ID:'A1',Year:2026,Month:10,Channel:'Market',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Sale_ID:'S1',Target_MT:10,Data_Status:'LIVE'}]
 };
 let source = app.replace(/drawNav\(\);go\('dashboard'\);/g, '');
-source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,weeklyPlanTable,contactAcceptancePct,actionRowV2,actionCard,calendarMonth,groupUomOptions,customerLovOptionsForGroup,priorWeeklyMetrics,prepareWeeklyPlanImport};';
+source += '\nthis.crmTestApi={selfCheck,isoWeek,toWeekRange,allocationsForTeam,teamTargetTable,salesProductReport,categoryMasterRows,buildWeeklyRecord,buildFollowupRecords,weeklyCalendar,weeklyPlanTable,contactAcceptancePct,actionRowV2,actionCard,calendarMonth,groupUomOptions,customerLovOptionsForGroup,priorWeeklyMetrics,prepareWeeklyPlanImport,combinedWeeklyPlanRows};';
 vm.runInNewContext(source, ctx, {filename:'app-v2.js'});
 const api = ctx.crmTestApi;
+ctx.db.actions = [
+  {Action_ID:'ACT-W40',Due_Date:'2026-09-28',Sale_ID:'S1',Customer_Code:'C1',Customer_Type:'EXISTING',Plan_Qty:2,Plan_UOM:'BOX',Status:'OPEN',Data_Status:'LIVE'},
+  {Action_ID:'ACT-W40-PROSPECT',Due_Date:'2026-10-04',Sale_ID:'S1',Prospect_Name:'Prospect Sunday',Customer_Type:'PROSPECT',Plan_Qty:1,Plan_UOM:'BOX',Status:'OPEN',Data_Status:'LIVE'},
+  {Action_ID:'ACT-W41',Due_Date:'2026-10-05',Sale_ID:'S1',Customer_Code:'C1',Customer_Type:'EXISTING',Plan_Qty:9,Plan_UOM:'BOX',Status:'OPEN',Data_Status:'LIVE'}
+];
+ctx.db.weeklyPlans = [{Plan_ID:'WPLAN-W40',Week_Key:'W40/2026',Plan_Date:'2026-09-28',Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Channel:'Market',Plan_Type:'Contact',Plan_Qty:3,Plan_UOM:'BOX',KG_Per_UOM:500,Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Data_Status:'LIVE'}];
+const combined = api.combinedWeeklyPlanRows('W40/2026');
+assert.equal(combined.length,3,'Combined weekly plan includes base and follow-up rows from selected ISO week only');
+assert.equal(combined.filter(x=>x.kind==='BASE').length,1,'Base-customer weekly Plan is included');
+assert.equal(combined.filter(x=>x.kind==='FOLLOWUP').length,2);
+assert.ok(combined.every(x=>x.date>='2026-09-28'&&x.date<='2026-10-04'),'Combined weekly plan respects Monday–Sunday boundaries');
 assert.equal(api.selfCheck.bad.length, 0, 'built-in date/UOM checks pass');
 assert.equal(api.isoWeek('2026-09-30'), 'W40/2026');
 assert.deepEqual(JSON.parse(JSON.stringify(api.toWeekRange('W40/2026'))), {start:'2026-09-28',end:'2026-10-04'});
