@@ -25,7 +25,7 @@ assert.match(app, /data-w-prev-metric[\s\S]*?priorWeeklyMetrics/, 'Weekly planni
 assert.match(app, /data-at="table"[\s\S]*data-at="kanban"[\s\S]*data-at="calendar"/, 'Action tabs are present');
 assert.match(app, /data-action-mode="combined"[\s\S]*เป้าหมายย่อยรายสัปดาห์/, 'Sales Action opens on the weekly sub-target view');
 assert.match(app, /id="combinedAddAction"[\s\S]*function actionTypeChoice[\s\S]*data-action-choice="base"[\s\S]*data-action-choice="followup"/, 'A single + Action control routes users to the existing base-plan or Prospect tab');
-assert.match(app, /function weeklyTargetBySale[\s\S]*monthWeeks[\s\S]*Target_MT\|\|0\)\/divisor/, 'Monthly Sale targets are split evenly across the ISO weeks touching each month');
+assert.match(app, /function monthlySaleTargetMt[\s\S]*function weeklyTargetBySale[\s\S]*monthlySaleTargetMt\(t\)[\s\S]*monthWeeks\(y,m\)\.size/, 'Monthly targets allocated per Sale become evenly split weekly sub-targets');
 assert.match(app, /function weeklyTargetSummary[\s\S]*เป้าหมายย่อยรวม[\s\S]*Plan รวม[\s\S]*Actual รวม/, 'Weekly action page compares sub-target, plan, and imported actual');
 assert.match(app, /function combinedWeeklyPlanRows\(week\)[\s\S]*weeklyDailyRows\(week,weekPlans\)[\s\S]*rows\('actions'\)/, 'Combined weekly tab merges base-customer plans and prospect actions');
 assert.match(app, /function combinedWeeklyPlanRows\(week\)[\s\S]*toWeekRange\(week\)[\s\S]*Due_Date/, 'Combined weekly tab scopes follow-up actions to the selected Monday–Sunday week');
@@ -69,6 +69,8 @@ const ctx = {
   localToday: () => '2026-09-30',
   me: 'test@example.com'
 };
+ctx.selectedTestChannel='';
+ctx.$ = selector => selector==='#baChannel' ? {value:ctx.selectedTestChannel} : null;
 ctx.rows = name => ctx.db[name] || [];
 ctx.db = {
   productGroups: [{Product_Group_ID:'G1',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Base_UOM:'MT',Active:'Y'}],
@@ -90,10 +92,13 @@ ctx.db.weeklyPlans = [{Plan_ID:'WPLAN-W40',Week_Key:'W40/2026',Plan_Date:'2026-0
 ctx.db.actuals=[{Sale_ID:'S1',Customer_Code:'C1',Item_Code:'I1',Plan_Type:'Contact',Sales_Date:'2026-09-30',Qty_MT:.5,Data_Status:'LIVE'}];
 const combined = api.combinedWeeklyPlanRows('W40/2026');
 assert.equal(api.weeklyTargetBySale('W40/2026').get('S1'),2,'October monthly Sale target is spread evenly over its five ISO weeks; a cross-month week receives one weekly share');
+ctx.db.targets.push({Target_ID:'SEP-PLANMT',Year:2026,Month:9,Channel:'Market',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Sale_ID:'S1',Target_MT:'',Plan_MT:50,Data_Status:'LIVE'});
+assert.equal(api.weeklyTargetBySale('W39/2026').get('S1'),10,'Weekly sub-target comes from monthly Sale target rows, falls back to Plan_MT, and divides evenly across September ISO weeks');
+assert.equal(api.weeklyTargetBySale('W40/2026').get('S1'),12,'A week spanning September and October receives one weekly share from each month');
 assert.equal(api.weeklySalePlanTotals('W40/2026').get('S1'),1.5,'Weekly Plan totals combine the base-customer plan in MT');
 assert.equal(api.weeklySaleActuals('W40/2026').get('S1'),0.5,'Weekly Actual totals come from imported sales Actual');
 const weeklySummary=api.weeklyTargetSummary('W40/2026');
-for(const text of ['เป้าหมายย่อยรวม','Plan รวม','Actual รวม','2.000 MT','1.500 MT','0.500 MT'])assert.ok(weeklySummary.includes(text),`weekly summary contains ${text}`);
+for(const text of ['เป้าหมายย่อยรวม','Plan รวม','Actual รวม','12.000 MT','1.500 MT','0.500 MT'])assert.ok(weeklySummary.includes(text),`weekly summary contains ${text}`);
 assert.equal(combined.length,3,'Combined weekly plan includes base and follow-up rows from selected ISO week only');
 assert.equal(combined.filter(x=>x.kind==='BASE').length,1,'Base-customer weekly Plan is included');
 assert.equal(combined.filter(x=>x.kind==='FOLLOWUP').length,2);
@@ -173,9 +178,13 @@ ctx.db.customerProducts=[{Customer_Code:'C2',Product_Type:'Value Add',PART:'Leg'
 ctx.db.actions=followup;
 ctx.db.weeklyPlans=[{Customer_Code:'C2',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Data_Status:'LIVE'}];
 const oldLov=api.customerLovOptionsForGroup('Special','Leg','DMS');
-assert.match(oldLov,/C1/,'Old customer LOV can reuse prior Action history for the selected category');
-assert.match(oldLov,/C2/,'Customer LOV can reuse a customer from prior weekly Plan');
-assert.doesNotMatch(oldLov,/C3/,'Old customer LOV excludes unrelated product groups');
+ctx.db.sales.push({Sale_ID:'S3',Sale_Name:'Other Sale',Channel:'Other'});
+ctx.db.customers.push({Customer_Code:'C4',Customer_Name:'Other Channel Customer',Assigned_Sale_ID:'S3',Channel:'Other'});
+ctx.selectedTestChannel='Market';
+const channelLov=api.customerLovOptionsForGroup();
+assert.match(channelLov,/Customer One/,'Existing customer LOV lists Customer Master names for the selected Channel');
+assert.match(channelLov,/Customer Three/,'Existing customer LOV does not require a product association before products are selected');
+assert.doesNotMatch(channelLov,/Other Channel Customer/,'Existing customer LOV is filtered by the Sale Channel');
 ctx.db.itemUoms=[{Item_Code:'I1',UOM:'BOX',KG_Per_UOM:500,Active:'Y'},{Item_Code:'I2',UOM:'BOX',KG_Per_UOM:500,Active:'Y'}];
 ctx.db.items.push({Item_Code:'I2',Item_Name:'Demo Item 2',Product_Type:'Special',PART:'Leg',SUB_PART:'DMS',Base_UOM:'BOX',KG_Per_UOM:500});
 assert.match(api.groupUomOptions('Special','Leg','DMS'), /BOX.*500/,'Group UOM dropdown uses consistent master conversion');
