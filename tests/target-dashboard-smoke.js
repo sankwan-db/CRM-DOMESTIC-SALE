@@ -139,6 +139,8 @@ assert.match(html, /#app \.hierarchy-table thead th\{position:sticky;top:0;z-ind
 assert.match(html, /#app \.hierarchy-table tfoot th\{position:static!important/, 'dashboard total row scrolls normally');
 assert.match(html, /#app \.team-target-tree,#app \.dashboard-target-tree\{width:100%;max-height:min\(65vh,680px\);overflow:auto/, 'hierarchy tables use a bounded scroll area');
 assert.ok(html.includes('#app .team-target-tree .hierarchy-row,#app .dashboard-target-tree .hierarchy-row{box-sizing:border-box;min-width:1160px!important;width:100%;grid-template-columns:'), 'target hierarchy uses compact columns with space for actions');
+assert.ok(html.includes('#app .team-target-tree .hierarchy-children,#app .dashboard-target-tree .hierarchy-children{margin-left:0;border-left:0}'), 'nested hierarchy does not shift metric columns at each level');
+assert.match(app, /const render=\(n,depth=0\)[\s\S]*render\(x,depth\+1\)[\s\S]*recordRow\(t,depth\+1\)/, 'team hierarchy indents labels inside the first cell while keeping numeric tracks aligned');
 assert.match(app, /const treeCell='<div class=\"hierarchy-label\" style=\"--tree-level:/, 'Dashboard periods and Sales share the hierarchy label column');
 assert.match(app, /data-week-subview=\"daily\"[\s\S]*data-week-subview=\"summary\"[\s\S]*data-week-subview=\"matrix\"[\s\S]*data-week-subview=\"orders\"/, 'weekly page provides vertical, product summary, matrix, and Contact order tabs');
 assert.match(app, /function weeklyDailyPlanTable\([\s\S]*วันที่ \/ วัน[\s\S]*ประมาณการณ์ผลิต[\s\S]*Actual \(หน่วย Plan\)[\s\S]*weeklyDailyPrev/, 'vertical weekly list shows daily forecast, planned-unit Actual and pagination');
