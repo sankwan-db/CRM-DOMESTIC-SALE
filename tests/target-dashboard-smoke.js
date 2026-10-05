@@ -38,22 +38,24 @@ const end = app.indexOf('function splitTable(data)', start);
 assert.ok(start >= 0 && end > start, 'latest teamTargetTable implementation exists');
 const ctx = {
   channelUniqueRows:()=>[{Channel_Code:'DMS-001',Channel_Name:'ตลาดสด'}],
-  rows:()=>[], esc:x=>String(x??''), fmt:(x,d=2)=>Number(x||0).toFixed(d),
+  rows:name=>name==='sales'?[{Sale_ID:'S1',Sale_Name:'Sale One'},{Sale_ID:'S2',Sale_Name:'Sale Two'}]:[], esc:x=>String(x??''), fmt:(x,d=2)=>Number(x||0).toFixed(d),
   groupForTarget:t=>t, targetLevel:t=>t.Target_Level||'SUB_PART', targetDimensionLabel:t=>t.Group_Product_Name||t.SUB_PART,
-  allocationsForTeam:()=>[], targetActualQty:()=>0
+  allocationsForTeam:t=>t.Target_ID==='T1'?[{_row:7,Sale_ID:'S1',Target_MT:10},{_row:8,Sale_ID:'S2',Target_MT:15}]:[], targetActualQty:()=>5
 };
-vm.runInNewContext(app.slice(app.indexOf('function channelNameForTarget'), end)+'\nthis.makeTree=teamTargetTable;',ctx);
+vm.runInNewContext(app.slice(app.indexOf('function channelNameForTarget'), end)+'\nthis.makeTree=teamTargetTable;this.makeCoverage=targetCoverage;',ctx);
 const rows = [
- {Target_ID:'T1',Year:2026,Month:10,Channel:'DMS-001',Product_Type:'SPECIAL',PART:'BB',SUB_PART:'TRIMMING',Target_Level:'SUB_PART',Plan_MT:50},
- {Target_ID:'T2',Year:2026,Month:10,Channel:'DMS-001',Product_Type:'SPECIAL',PART:'BB',SUB_PART:'TRIMMING',Group_Product_Name:'BB TRIMMING',Target_Level:'GROUP_PRODUCT',Plan_MT:25}
+ {Target_ID:'T1',_row:3,Year:2026,Month:10,Channel:'DMS-001',Product_Type:'SPECIAL',PART:'BB',SUB_PART:'TRIMMING',Target_Level:'SUB_PART',Plan_MT:50},
+ {Target_ID:'T2',_row:4,Year:2026,Month:10,Channel:'DMS-001',Product_Type:'SPECIAL',PART:'BB',SUB_PART:'TRIMMING',Group_Product_Name:'BB TRIMMING',Target_Level:'GROUP_PRODUCT',Plan_MT:25}
 ];
 const tree = ctx.makeTree(rows);
-assert.match(tree, /PRODUCT TYPE → PART → SUB-PART → GROUP PRODUCT/);
+assert.match(tree, /<th>Product Type<\/th><th>PART<\/th><th>SUB-PART<\/th><th>Group Product<\/th>/, 'flat product dimensions are separate columns');
 assert.match(tree, /BB TRIMMING/);
 assert.match(tree, /ตลาดสด/, 'Channel code is rendered as its master name');
 assert.doesNotMatch(tree, /<th>ปี<\/th>|<th>เดือน<\/th>/, 'Year and Month are not repeated as table columns');
 assert.match(tree, /data-team-detail=/, 'records have a detail popup action');
-assert.match(tree, /data-tree-expand-all[\s\S]*data-tree-collapse-all/, 'hierarchy has Expand All and Collapse All');
+assert.doesNotMatch(tree, /data-tree-expand-all|data-tree-collapse-all/, 'flat table has no hierarchy buttons');
+const dashboardFlat=ctx.makeCoverage([rows[0]],[{_row:7,Sale_ID:'S1',Target_MT:10}],[]);
+assert.match(dashboardFlat,/sale-detail-pop/);assert.match(dashboardFlat,/Sale One/);assert.doesNotMatch(dashboardFlat,/Sale Two/,'Dashboard Sale detail respects the active allocation filters');
 assert.match(app, /function showTeamTargetDetail\(t\)[\s\S]*ปี \/ เดือน[\s\S]*String\(t.Month\)/, 'popup displays target year and month');
 assert.match(app, /function categoryActualInPlanUom\(group,date,uom\)[\s\S]*actualSaleKey\(a\)/, 'weekly actual maps a report row with blank Sale_ID through customer master');
 assert.match(app, /function weeklyActualInPlanUom\(group,date,uom\)[\s\S]*actualSaleKey\(a\)/, 'weekly matrix actual uses customer assigned Sale as fallback');
@@ -63,9 +65,6 @@ assert.match(app, /weekly-total-plan[^]*weekly-total-actual[^]*% Coverage[^]*ป
 assert.match(app, /function openWeeklyEdit\(o\)[^]*weeklyGroupKey\(x\)===key[^]*openWeeklyEditor/, 'Edit Plan loads every date and plan type for the selected customer/product group');
 assert.match(app, /<tr class=\"hierarchy-data-row level-'.*?hierarchy-qty/, 'Dashboard detail rows use table-native rows, not the div hierarchy grid');
 assert.match(app, /<colgroup><col class=\"hier-col-product\"><col class=\"hier-col-plan\"><col class=\"hier-col-actual\"><col class=\"hier-col-coverage\"><\/colgroup>/, 'Dashboard hierarchy uses one label column plus three aligned measures');
-const targetTreeFn = app.slice(app.lastIndexOf('function teamTargetTable(data){'), app.indexOf('function splitTable(data)', app.lastIndexOf('function teamTargetTable(data){')));
-assert.match(targetTreeFn, /channelNameForTarget\(t.Channel\)\)\+'<\/span>/, 'target leaf row shows the Channel name');
-assert.doesNotMatch(targetTreeFn, /channelNameForTarget\(t.Channel\).*Group Product|channelNameForTarget\(t.Channel\).*SUB-PART/, 'target leaf does not repeat SUB-PART or Group Product after Channel');
 assert.match(html, /hierarchy-table tr\.hierarchy-data-row\{display:table-row/, 'hierarchy rows retain native table column alignment');
 assert.match(html, /weekly-summary-row\.weekly-spot-total>th:first-child\{justify-content:flex-start!important;text-align:left!important\}/, 'Contact and Spot summary labels stay left aligned consistently');
 assert.match(html, /T_SALES_ACTUAL:\[[^\]]*'Plan_Type'\]/, 'Actual import schema contains Plan_Type');
@@ -137,10 +136,10 @@ assert.match(app, /weekly-contact-total/, 'weekly matrix keeps a distinct Contac
 assert.match(html, /weekly-contact-total>\*\{position:static!important;left:auto!important;top:auto!important;z-index:auto!important\}/, 'optional weekly matrix has no frozen identity/summary columns');
 assert.match(html, /#app \.hierarchy-table thead th\{position:sticky;top:0;z-index:4/, 'dashboard hierarchy keeps only its header sticky');
 assert.match(html, /#app \.hierarchy-table tfoot th\{position:static!important/, 'dashboard total row scrolls normally');
-assert.match(html, /#app \.team-target-tree,#app \.dashboard-target-tree\{width:100%;max-height:min\(65vh,680px\);overflow:auto/, 'hierarchy tables use a bounded scroll area');
-assert.ok(html.includes('#app .team-target-tree .hierarchy-row,#app .dashboard-target-tree .hierarchy-row{box-sizing:border-box;min-width:1160px!important;width:100%;grid-template-columns:'), 'target hierarchy uses compact columns with space for actions');
-assert.ok(html.includes('#app .team-target-tree .hierarchy-children,#app .dashboard-target-tree .hierarchy-children{margin-left:0;border-left:0}'), 'nested hierarchy does not shift metric columns at each level');
-assert.match(app, /const render=\(n,depth=0\)[\s\S]*render\(x,depth\+1\)[\s\S]*recordRow\(t,depth\+1\)/, 'team hierarchy indents labels inside the first cell while keeping numeric tracks aligned');
+assert.match(html, /flat-target-table-wrap/, 'flat tables have a bounded scrolling wrapper');
+assert.match(html, /flat-target-table thead th\{position:sticky;top:0/, 'flat table header remains visible');
+assert.match(html, /flat-target-table td\.num\{text-align:right!important/, 'numeric values align right');
+assert.match(app, /function targetCoverage\(team,split,actualRows=rows\('actuals'\)\)[\s\S]*flat-target-table[\s\S]*sale-detail-pop/, 'dashboard target rows use flat table with Sale detail dropdown');
 assert.match(app, /const treeCell='<div class=\"hierarchy-label\" style=\"--tree-level:/, 'Dashboard periods and Sales share the hierarchy label column');
 assert.match(app, /data-week-subview=\"daily\"[\s\S]*data-week-subview=\"summary\"[\s\S]*data-week-subview=\"matrix\"[\s\S]*data-week-subview=\"orders\"/, 'weekly page provides vertical, product summary, matrix, and Contact order tabs');
 assert.match(app, /function weeklyDailyPlanTable\([\s\S]*วันที่ \/ วัน[\s\S]*ประมาณการณ์ผลิต[\s\S]*Actual \(หน่วย Plan\)[\s\S]*weeklyDailyPrev/, 'vertical weekly list shows daily forecast, planned-unit Actual and pagination');
@@ -187,4 +186,4 @@ const orderRowStart=app.indexOf('function contactOrderEntryRow(');const orderRow
 entryCtx.orders=[{Order_ID:'O1',Plan_ID:'P1',Order_Date:'2026-10-05',Order_Qty:10,Order_UOM:'KG',Order_Type:'PLAN',Data_Status:'LIVE'},{Order_ID:'O2',Plan_ID:'P1',Order_Date:'2026-10-07',Order_Qty:5,Order_UOM:'KG',Order_Type:'EXTRA',Data_Status:'LIVE'}];
 assert.equal(entryCtx.getEntries(planRow).length,2,'one Plan can have multiple received-order dates/quantities');
 
-console.log('Target/dashboard smoke checks passed: date validation, scoped filters, searchable production picker, monthly product filters, named Channel display, target hierarchy, detail popup, and expand/collapse.');
+console.log('Target/dashboard smoke checks passed: date validation, scoped filters, searchable production picker, monthly product filters, flat target tables, Sale dropdown filtering, and detail actions.');
