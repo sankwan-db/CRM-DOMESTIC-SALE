@@ -513,6 +513,41 @@ body.modal-open{overflow:hidden}
 #app .team-target-tree .hierarchy-row>span:last-child{display:flex;justify-content:flex-start;align-items:center;gap:6px;flex-wrap:wrap}
 @media(max-width:1000px){#app .weekly-summary-cards{grid-template-columns:repeat(3,minmax(130px,1fr))}}
 @media(max-width:620px){#app .weekly-summary-cards{grid-template-columns:repeat(2,minmax(120px,1fr))}#app .weekly-daily-controls{align-items:stretch}#app .weekly-daily-controls label,#app .weekly-daily-controls input,#app .weekly-daily-controls select{width:100%;min-width:0}}
+/* Hierarchy tables: one bounded scroll area, sticky header only, no frozen columns or totals. */
+#app .hierarchy-wrap{max-height:min(68vh,720px);overflow:auto;overscroll-behavior:contain;border:1px solid #e1e8f2;border-radius:10px;background:#fff}
+#app .hierarchy-table{width:100%;min-width:760px;table-layout:fixed;border-collapse:separate;border-spacing:0}
+#app .hierarchy-table col.hier-col-product{width:58%}
+#app .hierarchy-table col.hier-col-plan{width:14%}
+#app .hierarchy-table col.hier-col-actual{width:14%}
+#app .hierarchy-table col.hier-col-coverage{width:14%}
+#app .hierarchy-table th,#app .hierarchy-table td{box-sizing:border-box;padding:9px 12px}
+#app .hierarchy-table thead th{position:sticky;top:0;z-index:4;background:#f3f6fb;text-align:center!important}
+#app .hierarchy-table thead th:first-child{text-align:left!important}
+#app .hierarchy-table tbody tr{height:42px}
+#app .hierarchy-table tbody tr.level-0{background:#eef4ff;font-weight:700}
+#app .hierarchy-table tbody tr.level-1{background:#f7f9fd;font-weight:650}
+#app .hierarchy-table tbody tr.level-2{background:#fff;font-weight:600}
+#app .hierarchy-table tbody tr.level-3,#app .hierarchy-table tbody tr.level-4{background:#fcfdff}
+#app .hierarchy-table tbody tr:hover{background:#f0f6ff}
+#app .hierarchy-table td.hierarchy-name{text-align:left;white-space:normal;overflow-wrap:anywhere}
+#app .hierarchy-table td.num,#app .hierarchy-table th.num{text-align:right!important;white-space:nowrap;font-variant-numeric:tabular-nums}
+#app .hierarchy-table tfoot th{position:static!important;bottom:auto!important;z-index:auto;background:#eaf0fa;font-weight:700}
+#app .hierarchy-label{display:flex;align-items:center;gap:8px;padding-left:calc(var(--tree-level,0)*18px);min-height:24px}
+#app .hierarchy-kind-label{flex:none;min-width:94px;color:#71809c;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.02em}
+#app .hierarchy-table .tree-toggle{flex:none}
+#app .hierarchy-table .tree-spacer{flex:none;width:24px}
+#app .team-target-tree,#app .dashboard-target-tree{width:100%;max-height:min(65vh,680px);overflow:auto;overscroll-behavior:contain;border:1px solid #e1e8f2;border-radius:10px;background:#fff}
+#app .team-target-tree .hierarchy-row,#app .dashboard-target-tree .hierarchy-row{box-sizing:border-box;min-width:1160px!important;width:100%;grid-template-columns:minmax(245px,2fr) repeat(4,minmax(95px,.9fr)) repeat(2,minmax(82px,.75fr)) minmax(180px,1.45fr)!important;gap:8px!important;padding:9px 10px;align-items:center}
+#app .dashboard-target-tree .hierarchy-row{min-width:1040px!important;grid-template-columns:minmax(270px,2.2fr) repeat(4,minmax(105px,.9fr)) repeat(2,minmax(88px,.75fr))!important}
+#app .team-target-tree .hierarchy-head,#app .dashboard-target-tree .hierarchy-head{position:sticky;top:0;z-index:5;min-height:46px;background:#f3f6fb;border-bottom:1px solid #dce5f1;box-shadow:0 1px 2px #13234a12}
+#app .team-target-tree .hierarchy-head>span,#app .dashboard-target-tree .hierarchy-head>span{text-align:center;white-space:normal;font-size:12px;line-height:1.3}
+#app .team-target-tree .hierarchy-head>span:first-child,#app .dashboard-target-tree .hierarchy-head>span:first-child{text-align:left}
+#app .team-target-tree .hierarchy-children,#app .dashboard-target-tree .hierarchy-children{min-width:0}
+#app .team-target-tree .team-target-record .row{justify-content:flex-start;flex-wrap:wrap;white-space:normal;gap:5px}
+#app .team-target-tree .team-target-record .row .btn{padding:5px 8px;line-height:1.2;white-space:nowrap}
+#app .team-target-tree .hierarchy-controls,#app .dashboard-target-tree .hierarchy-controls{position:relative;z-index:1;display:flex;justify-content:flex-end;gap:8px;padding:8px 10px;background:#fff;border-bottom:1px solid #edf1f7}
+#app .target-coverage-card{min-width:0}
+@media(max-width:760px){#app .hierarchy-title{align-items:flex-start;flex-direction:column}#app .hierarchy-title>.row{width:100%;justify-content:flex-end}#app .hierarchy-kind-label{min-width:76px}#app .hierarchy-wrap{max-height:65vh}}
 </style></head><body><div class="layout" id="layout"><aside class="sidebar"><div class="brand"><div class="brandmark">S</div><div class="brandtext"><b>CRM</b><small>DOMESTIC SALE</small></div></div><div class="navlabel">SALES EXECUTION</div><nav class="nav" id="nav"></nav><div class="userbox"><span id="connectionLabel">● ยังไม่เชื่อมต่อฐานข้อมูล</span><button class="btn small" style="float:right" id="toggleSide">‹</button></div></aside><main class="main"><header class="top"><div><div class="crumb">CRM / DOMESTIC SALE</div><h1 id="topTitle">Dashboard</h1></div><div class="topright"><button id="refreshData" class="btn" title="ดึงข้อมูลล่าสุดจาก Google Sheet">↻ รีเฟรชข้อมูล</button><span id="whoami" class="pill">ยังไม่ได้เข้าสู่ระบบ</span><button id="signin" class="btn primary">เชื่อมต่อ Google Sheet</button><button id="signout" class="btn hidden">ออก</button></div></header><div class="content" id="app"></div></main></div><div class="modalback" id="modalback"><div class="modal" id="modal"></div></div><div id="toast" class="toast hidden"></div>
 <script>
 'use strict';
@@ -590,4 +625,4 @@ function setupPage(){return pageHead('ตั้งค่าการเชื่
 function render(){if(!$('#app'))return;if(!token){$('#app').innerHTML=page==='setup'?setupPage():pageHead('CRM Domestic Sale','เชื่อมต่อบัญชี Google ที่มีสิทธิ์แก้ไข Google Sheet เพื่อเริ่มใช้งาน')+`<div class="card"><div class="empty">ระบบเก็บข้อมูลบน Google Sheet ของคุณ<br>กดปุ่มเชื่อมต่อที่มุมขวาบน แล้วเลือกบัญชี Gmail ที่ได้รับสิทธิ์ Editor</div></div>`;return}if(page==='dashboard')$('#app').innerHTML=dashboard();if(page==='targets')$('#app').innerHTML=targetsPage();if(page==='import')$('#app').innerHTML=importPage();if(page==='actions')$('#app').innerHTML=actionPage();if(page==='master')$('#app').innerHTML=masterPage();bindFilters();$('#app').querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>{targetTab=+b.dataset.tt;render();drawTargets()});if(page==='targets'){drawTargets();$('#tshow').onclick=drawTargets;['tyear','tmonth','tchannel'].forEach(x=>$('#'+x).onchange=drawTargets)}if(page==='actions'){$('#newAction').onclick=()=>actionForm();$('#app').querySelectorAll('[data-at]').forEach(b=>b.onclick=()=>{actTab=b.dataset.at;render()});drawActions()}if(page==='import'){ $('#previewImport').onclick=previewImport;$('#downloadImportTemplate').onclick=()=>downloadTemplate();$('#exportActual').onclick=()=>exportRows(rows('actuals'),'T_SALES_ACTUAL')}if(page==='master'){$('#app').querySelectorAll('[data-mtab]').forEach(b=>b.onclick=()=>{mtab=b.dataset.mtab;render();drawMaster()});drawMaster()}$('#exportDashboard')?.addEventListener('click',()=>exportRows(currentFiltered(),'Dashboard_Actual'))}
 function downloadTemplate(){let wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([['Sales_Date','Channel','Item_Code','Customer_Code','Plan_Type','Qty','UOM'],[today(),importChannelSelection||'เลือก Channel ในหน้า Import','ITEM-001','CUST-001','Contact',1000,'KG']]);ws['!cols']=[{wch:14},{wch:20},{wch:18},{wch:18},{wch:14},{wch:12},{wch:10}];XLSX.utils.book_append_sheet(wb,ws,'Sales Import');let guide=XLSX.utils.aoa_to_sheet([['คอลัมน์','วิธีกรอก'],['Sales_Date','วันที่ขายจริง ใช้ match กับ Plan_Date'],['Channel','Channel_Code ต้องตรงกับ Channel ที่เลือกบนหน้า Import'],['Item_Code','รหัสสินค้าต้องมีใน M_ITEM'],['Customer_Code','รหัสลูกค้าต้องมีใน M_CUSTOMER'],['Plan_Type','ระบุ Contact หรือ Spot เพื่อจัดประเภทยอดขายจริงขั้นสุดท้ายให้ตรงกับแผน'],['Qty','จำนวนขายตาม UOM ในแถวนี้'],['UOM','หน่วยขายของ Item ต้องมี Conversion ใน M_ITEM_UOM'],['หมายเหตุ','Contact วัด 2 ขั้น: รับ Order ล่วงหน้าบันทึกใน Action Plan รายสัปดาห์ และยอดขายจริงขั้นสุดท้ายบันทึกในรายงานนี้ โดยแยก Plan_Type Contact'],['หมายเหตุเพิ่มเติม','กรณีวัน/ลูกค้า/กลุ่มสินค้าเดียวกันมีทั้ง Contact และ Spot ให้แยกบรรทัดขายตามประเภทแผน ห้ามใส่ยอดเดียวกันซ้ำสองประเภท']]);XLSX.utils.book_append_sheet(wb,guide,'Instructions');XLSX.writeFile(wb,'CRM_Domestic_Sales_Import_Template.xlsx')}
 drawNav();go('dashboard');
-</script><script src="app-v2.js?v=crm-forecast-import-20261005-05"></script></body></html>
+</script><script src="app-v2.js?v=crm-layout-hierarchy-20261005-06"></script></body></html>
