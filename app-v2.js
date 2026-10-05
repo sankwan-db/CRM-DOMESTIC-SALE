@@ -925,7 +925,7 @@ function customerLovOptionsForGroup(type,part,sub,selectedCustomer=''){
  const channel=selectedChannel(),saleChannels=new Map(rows('sales').map(s=>[String(s.Sale_ID),String(s.Channel||s.Team||'')]));
  return active(rows('customers')).filter(c=>{
   const customerChannel=String(c.Channel||saleChannels.get(String(c.Assigned_Sale_ID))||'');
-  return !channel||customerChannel===String(channel);
+  return !channel||canonicalTargetChannel(customerChannel)===canonicalTargetChannel(channel);
  }).sort((a,b)=>String(a.Customer_Name||'').localeCompare(String(b.Customer_Name||''),'th')).map(c=>'<option value="'+esc(c.Customer_Code)+'" '+(String(c.Customer_Code)===String(selectedCustomer)?'selected':'')+'>'+esc(c.Customer_Name||c.Customer_Code)+'</option>').join('');
 }
 function prospectLovOptions(type,part,sub,selectedId=''){const ch=selectedChannel();return active(rows('prospects')).filter(p=>(!p.Channel||p.Channel===ch)&&(!type||!p.Product_Type||p.Product_Type===type)&&(!part||!p.PART||p.PART===part)&&(!sub||!p.SUB_PART||p.SUB_PART===sub)).map(p=>`<option value="${esc(p.Prospect_ID)}" ${p.Prospect_ID===selectedId?'selected':''}>${esc(p.Prospect_Name)} · ${esc(p.Prospect_ID)}</option>`).join('')}
