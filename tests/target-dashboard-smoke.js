@@ -59,11 +59,10 @@ assert.match(app, /function categoryActualInPlanUom\(group,date,uom\)[\s\S]*actu
 assert.match(app, /function weeklyActualInPlanUom\(group,date,uom\)[\s\S]*actualSaleKey\(a\)/, 'weekly matrix actual uses customer assigned Sale as fallback');
 assert.match(app, /function weeklyActualPlanSaleMatch\(a,saleId\)[\s\S]*return !assigned\|\|String\(assigned\)===String\(saleId\)/, 'weekly actual rows without Sale_ID can match by customer and item/date');
 assert.match(app, /weeklyActualFilterRow\(a,group.Sale_ID\)/, 'weekly filters use the planned Sale when imported Sale_ID and customer assignment are blank');
-assert.match(html, /\.team-target-tree \.hierarchy-row\{min-width:1340px;grid-template-columns:[^}]+\}/, 'hierarchy table columns fit the added management actions');
 assert.match(app, /weekly-total-plan[^]*weekly-total-actual[^]*% Coverage[^]*ปรับ Plan/, 'weekly summary columns follow Plan, Actual, Coverage, Adjust Plan');
 assert.match(app, /function openWeeklyEdit\(o\)[^]*weeklyGroupKey\(x\)===key[^]*openWeeklyEditor/, 'Edit Plan loads every date and plan type for the selected customer/product group');
 assert.match(app, /<tr class=\"hierarchy-data-row level-'.*?hierarchy-qty/, 'Dashboard detail rows use table-native rows, not the div hierarchy grid');
-assert.match(app, /<colgroup><col class=\"hier-col-product\"><col class=\"hier-col-period\"><col class=\"hier-col-sale\"><col class=\"hier-col-plan\"><col class=\"hier-col-actual\"><col class=\"hier-col-coverage\"><\/colgroup>/, 'Dashboard detail defines one fixed width for each of its six columns');
+assert.match(app, /<colgroup><col class=\"hier-col-product\"><col class=\"hier-col-plan\"><col class=\"hier-col-actual\"><col class=\"hier-col-coverage\"><\/colgroup>/, 'Dashboard hierarchy uses one label column plus three aligned measures');
 const targetTreeFn = app.slice(app.lastIndexOf('function teamTargetTable(data){'), app.indexOf('function splitTable(data)', app.lastIndexOf('function teamTargetTable(data){')));
 assert.match(targetTreeFn, /channelNameForTarget\(t.Channel\)\)\+'<\/span>/, 'target leaf row shows the Channel name');
 assert.doesNotMatch(targetTreeFn, /channelNameForTarget\(t.Channel\).*Group Product|channelNameForTarget\(t.Channel\).*SUB-PART/, 'target leaf does not repeat SUB-PART or Group Product after Channel');
@@ -136,7 +135,11 @@ assert.match(app, /target-metric[\s\S]*target-percent/, 'target hierarchy separa
 assert.match(html, /target-metric\{text-align:right!important[\s\S]*target-percent\{text-align:center!important/, 'target table amounts align right and percentage cells center');
 assert.match(app, /weekly-contact-total/, 'weekly matrix keeps a distinct Contact Total row');
 assert.match(html, /weekly-contact-total>\*\{position:static!important;left:auto!important;top:auto!important;z-index:auto!important\}/, 'optional weekly matrix has no frozen identity/summary columns');
-assert.match(html, /grid-template-columns:minmax\(285px,2fr\) repeat\(4,minmax\(125px,\.95fr\)\) repeat\(2,minmax\(105px,\.8fr\)\) minmax\(250px,1\.8fr\)/, 'team target hierarchy explicitly allocates eight columns including management actions');
+assert.match(html, /#app \.hierarchy-table thead th\{position:sticky;top:0;z-index:4/, 'dashboard hierarchy keeps only its header sticky');
+assert.match(html, /#app \.hierarchy-table tfoot th\{position:static!important/, 'dashboard total row scrolls normally');
+assert.match(html, /#app \.team-target-tree,#app \.dashboard-target-tree\{width:100%;max-height:min\(65vh,680px\);overflow:auto/, 'hierarchy tables use a bounded scroll area');
+assert.ok(html.includes('#app .team-target-tree .hierarchy-row,#app .dashboard-target-tree .hierarchy-row{box-sizing:border-box;min-width:1160px!important;width:100%;grid-template-columns:'), 'target hierarchy uses compact columns with space for actions');
+assert.match(app, /const treeCell='<div class=\"hierarchy-label\" style=\"--tree-level:/, 'Dashboard periods and Sales share the hierarchy label column');
 assert.match(app, /data-week-subview=\"daily\"[\s\S]*data-week-subview=\"summary\"[\s\S]*data-week-subview=\"matrix\"[\s\S]*data-week-subview=\"orders\"/, 'weekly page provides vertical, product summary, matrix, and Contact order tabs');
 assert.match(app, /function weeklyDailyPlanTable\([\s\S]*วันที่ \/ วัน[\s\S]*ประมาณการณ์ผลิต[\s\S]*Actual \(หน่วย Plan\)[\s\S]*weeklyDailyPrev/, 'vertical weekly list shows daily forecast, planned-unit Actual and pagination');
 assert.match(app, /function weeklyProductSummaryTable\([\s\S]*Plan Contact \(MT\)[\s\S]*Plan Spot \(MT\)[\s\S]*ประมาณการณ์ผลิต \(MT\)[\s\S]*Actual \(MT\)/, 'product summary compares Contact/Spot plans, forecast, and actual');
