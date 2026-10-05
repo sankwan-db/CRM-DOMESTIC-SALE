@@ -26,6 +26,12 @@ assert.match(app, /data-at="table"[\s\S]*data-at="kanban"[\s\S]*data-at="calenda
 assert.match(app, /data-action-mode="combined"[\s\S]*เป้าหมายย่อยรายสัปดาห์/, 'Sales Action opens on the weekly sub-target view');
 assert.match(app, /id="combinedAddAction"[\s\S]*function actionTypeChoice[\s\S]*data-action-choice="base"[\s\S]*data-action-choice="followup"/, 'A single + Action control routes users to the existing base-plan or Prospect tab');
 assert.match(app, /function monthlySaleTargetMt[\s\S]*function weeklyTargetBySale[\s\S]*monthlySaleTargetMt\(t\)[\s\S]*monthWeeks\(y,m\)\.size/, 'Monthly targets allocated per Sale become evenly split weekly sub-targets');
+const targetModalSource = app.slice(app.lastIndexOf('function teamTargetModalV2('), app.indexOf('function channelNameForTarget', app.lastIndexOf('function teamTargetModalV2(')));
+assert.ok(targetModalSource.includes("targetLevelFields('mt',existing)"), 'Monthly team target form exposes the target grain selector');
+assert.ok(targetModalSource.includes('Target_Level:level') && targetModalSource.includes('Group_Product_ID:gp?.Group_Product_ID') && targetModalSource.includes('Group_Product_Name:gp?.Group_Product_Name'), 'Team target saves either SUB-PART or the selected Group Product with its hierarchy');
+assert.ok(app.includes('ระดับการตั้งเป้าหมาย') && app.includes('value="SUB_PART"') && app.includes('value="GROUP_PRODUCT"'), 'Target level control clearly offers SUB-PART and GROUP PRODUCT');
+assert.ok(app.includes("sel.disabled=level!=='GROUP_PRODUCT'") && app.includes('เลือก Group Product'), 'Group Product picker stays visible and becomes selectable only for Group Product targets');
+
 assert.match(app, /function weeklyTargetSummary[\s\S]*เป้าหมายย่อยรวม[\s\S]*Plan รวม[\s\S]*Actual รวม/, 'Weekly action page compares sub-target, plan, and imported actual');
 assert.match(app, /function combinedWeeklyPlanRows\(week\)[\s\S]*weeklyDailyRows\(week,weekPlans\)[\s\S]*rows\('actions'\)/, 'Combined weekly tab merges base-customer plans and prospect actions');
 assert.match(app, /function combinedWeeklyPlanRows\(week\)[\s\S]*toWeekRange\(week\)[\s\S]*Due_Date/, 'Combined weekly tab scopes follow-up actions to the selected Monday–Sunday week');
