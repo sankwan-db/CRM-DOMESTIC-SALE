@@ -180,6 +180,8 @@ ctx.db.weeklyPlans=[{Customer_Code:'C2',Product_Type:'Special',PART:'Leg',SUB_PA
 const oldLov=api.customerLovOptionsForGroup('Special','Leg','DMS');
 ctx.db.sales.push({Sale_ID:'S3',Sale_Name:'Other Sale',Channel:'Other'});
 ctx.db.customers.push({Customer_Code:'C4',Customer_Name:'Other Channel Customer',Assigned_Sale_ID:'S3',Channel:'Other'});
+ctx.db.channels=[{Channel_Code:'Market',Channel_Name:'ตลาดสด',Active:'Y'}];
+ctx.db.customers.slice(0,3).forEach(c=>c.Channel='ตลาดสด');
 ctx.selectedTestChannel='Market';
 const channelLov=api.customerLovOptionsForGroup();
 assert.match(channelLov,/Customer One/,'Existing customer LOV lists Customer Master names for the selected Channel');
